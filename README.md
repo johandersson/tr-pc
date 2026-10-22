@@ -39,11 +39,17 @@ pins Gradle itself, so a separate Gradle installation is unnecessary.
   application through the calendar module. Back up production data first.
 
 ### Build artefacts and run
-- open a terminal window (Xterm, Konsole, Dos prompt, PowerShell...) and navigate to the root of the git clone tr-pc
-- run `ant build-zip` (or `ant clean build-zip` for a clean rebuild)
-- you will find a zip file *trgtd.zip* inside the folder *dist*.
-  Unzip it, navigate inside into the bin and start the respective binary for your OS.
-- with `just` installed, you can simply run `just build-zip`
+
+1. Open a terminal in the root of the repository.
+2. Run `ant build-zip`, or `ant clean build-zip` for a clean rebuild.
+   With `just` installed, use `just build-zip`.
+3. Find `trgtd.zip` in `dist` and extract it.
+4. In the extracted application folder, run the launcher in `bin` for your OS:
+   `trgtd.exe` on Windows, `trgtd` on Linux, or `trgtd` on macOS.
+
+On Windows, the executable is `.../bin/trgtd.exe`. It is the
+application launcher, not a standalone executable; keep the extracted
+application folders together when running it.
 
 #### Platform downloads and reproducibility
 
@@ -79,6 +85,8 @@ tests fail. The first test run needs access to the Gradle and Maven repositories
 
 CI uses the configured JDK, runs the headless tests, builds a clean Ant release
 ZIP, and uploads it as an artifact.
+Generated Kotlin state in `.kotlin/` is ignored, so command-line builds do not
+leave that local build state as an untracked repository change.
 
 ### Run From NetBeans
 
