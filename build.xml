@@ -2,7 +2,13 @@
 
 <project name="ThinkingRock" basedir=".">
     <description>Builds trgtd distributions.</description>
+    <property file="nbproject/platform.properties"/>
+    <ant antfile="nbproject/platform.xml" target="prepare"/>
     <import file="nbproject/build-impl.xml"/>
+
+    <target name="run-dev" depends="build" description="Runs ThinkingRock without the NetBeans IDE. Back up production data first.">
+        <ant antfile="modules/au.com.trgtd.tr.calendar/build.xml" target="run"/>
+    </target>
 
     <target name="-bundle-osx" depends="build,build-launchers" description="Builds an application bundle for MacOSX.">
 
