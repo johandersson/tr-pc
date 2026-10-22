@@ -41,11 +41,10 @@ tasks.register<JavaExec>("runNetBeans") {
 	"-XX:HeapDumpPath=$userdir/var/log/heapdumup.hprof",
     )
     val clusterDir = file("${rootProject.layout.buildDirectory.get()}/cluster")
-    val netbeansDir = file("${rootProject.layout.projectDirectory}/netbeans-plat/$netbeansVersion/")
+    val netbeansDir = rootProject.layout.projectDirectory.dir("../netbeans-plat/$netbeansVersion").asFile
     systemProperty("netbeans.user", userdir)
     systemProperty("netbeans.dirs", listOf(clusterDir, netbeansDir.resolve("harness"), netbeansDir.resolve("ide")).joinToString(":"))
     systemProperty("netbeans.home", netbeansDir.resolve("platform"))
     systemProperty("netbeans.logger.console", "true")
     systemProperty("java.security.manager", "allow")
 }
-
