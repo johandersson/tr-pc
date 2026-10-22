@@ -53,8 +53,8 @@ application folders together when running it.
 
 #### Platform downloads and reproducibility
 
-The first build downloads the fixed Apache NetBeans binary ZIP and its official
-SHA-512 checksum over HTTPS from the Apache archive. The checksum is verified
+The first build downloads the fixed Apache NetBeans binary ZIP over HTTPS and
+verifies it against the SHA-256 digest pinned in `nbproject/platform.properties`,
 before extracting only the harness, platform, and IDE clusters into the
 repository-local `netbeans-plat/25` directory. No IDE settings or update center
 are needed. Root Ant builds load repository platform settings before NetBeans
@@ -62,13 +62,14 @@ private settings, so a previously selected IDE platform cannot silently replace
 them.
 
 Downloads are cached in `netbeans-plat/downloads`; subsequent builds reuse the
-prepared platform without network access. An existing platform from the old
-update-center bootstrap is replaced on the first build. To re-verify and
-re-extract the cached distribution, delete `netbeans-plat/25/.verified-distribution`.
-For a checksum error, delete the ZIP and `.sha512` file named in the error, then
-retry. For download errors, check access to `https://archive.apache.org`.
-The checksum protects against corrupt downloads; it is fetched from the same
-trusted HTTPS source, not an independently signed or repository-pinned digest.
+prepared platform without network access. The prepared marker records the pinned
+digest, so changing the version or digest forces verification and extraction again.
+An existing platform from the old update-center bootstrap is replaced on the
+first build. To re-verify and re-extract the cached distribution, delete
+`netbeans-plat/25/.verified-distribution`.
+For a checksum error, delete the ZIP named in the error, then retry. For download
+errors, check access to `https://archive.apache.org`. The pinned digest prevents
+an archive-host compromise from silently replacing the expected checksum.
 
 #### Tests without renaming files
 
@@ -77,6 +78,13 @@ trusted HTTPS source, not an independently signed or repository-pinned digest.
 - Optional shortcuts: `just verify-headless` or `just verify-ci`.
 - Include UI tests with `./gradlew -p gradle check -Dtest.profile=allTests`
   (requires a graphical display), or `just verify`.
+
+Gradle dependency locks and SHA-256 verification metadata are checked in. When
+updating dependencies, regenerate them with
+`./gradlew -p gradle check --write-locks --write-verification-metadata sha256`
+and
+`./gradlew -p gradle-plugins build --write-locks --write-verification-metadata sha256`,
+then review the generated lock and checksum changes.
 
 Gradle's settings live in `gradle/settings.gradle.kts` and use permanently named
 `tests.gradle.kts` build files, leaving the root project recognizable as an Ant
