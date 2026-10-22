@@ -13,3 +13,4 @@ netbeans-plat/
 **/*.iml
 
 .gradle
+.kotlin/
