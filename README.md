@@ -79,6 +79,13 @@ an archive-host compromise from silently replacing the expected checksum.
 - Include UI tests with `./gradlew -p gradle check -Dtest.profile=allTests`
   (requires a graphical display), or `just verify`.
 
+Gradle dependency locks and SHA-256 verification metadata are checked in. When
+updating dependencies, regenerate them with
+`./gradlew -p gradle check --write-locks --write-verification-metadata sha256`
+and
+`./gradlew -p gradle-plugins build --write-locks --write-verification-metadata sha256`,
+then review the generated lock and checksum changes.
+
 Gradle's settings live in `gradle/settings.gradle.kts` and use permanently named
 `tests.gradle.kts` build files, leaving the root project recognizable as an Ant
 project to NetBeans. There are no enable/disable or rename steps, including when
