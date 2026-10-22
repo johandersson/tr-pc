@@ -53,8 +53,8 @@ application folders together when running it.
 
 #### Platform downloads and reproducibility
 
-The first build downloads the fixed Apache NetBeans binary ZIP and its official
-SHA-512 checksum over HTTPS from the Apache archive. The checksum is verified
+The first build downloads the fixed Apache NetBeans binary ZIP over HTTPS and
+verifies it against the SHA-256 digest pinned in `nbproject/platform.properties`,
 before extracting only the harness, platform, and IDE clusters into the
 repository-local `netbeans-plat/25` directory. No IDE settings or update center
 are needed. Root Ant builds load repository platform settings before NetBeans
@@ -65,10 +65,9 @@ Downloads are cached in `netbeans-plat/downloads`; subsequent builds reuse the
 prepared platform without network access. An existing platform from the old
 update-center bootstrap is replaced on the first build. To re-verify and
 re-extract the cached distribution, delete `netbeans-plat/25/.verified-distribution`.
-For a checksum error, delete the ZIP and `.sha512` file named in the error, then
-retry. For download errors, check access to `https://archive.apache.org`.
-The checksum protects against corrupt downloads; it is fetched from the same
-trusted HTTPS source, not an independently signed or repository-pinned digest.
+For a checksum error, delete the ZIP named in the error, then retry. For download
+errors, check access to `https://archive.apache.org`. The pinned digest prevents
+an archive-host compromise from silently replacing the expected checksum.
 
 #### Tests without renaming files
 

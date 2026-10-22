@@ -2,6 +2,12 @@ plugins {
     java
 }
 
+allprojects {
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(libs.versions.java.get())

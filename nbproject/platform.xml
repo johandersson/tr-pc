@@ -3,7 +3,6 @@
     <property file="nbproject/platform.properties"/>
     <property name="platform.cache.dir" location="netbeans-plat/downloads"/>
     <property name="platform.archive" location="${platform.cache.dir}/netbeans-${netbeans-plat-version}-bin.zip"/>
-    <property name="platform.checksum" location="${platform.archive}.sha512"/>
 
     <target name="check-toolchain">
         <fail message="Use JDK ${java-version} (not a JRE). Set JAVA_HOME and PATH; current Java is ${java.version}.">
@@ -39,19 +38,12 @@
 
     <target name="download" depends="check-platform" unless="platform.ready">
         <mkdir dir="${platform.cache.dir}"/>
-        <get src="${netbeans.distribution.url}.sha512" dest="${platform.checksum}" skipexisting="true"/>
         <get src="${netbeans.distribution.url}" dest="${platform.archive}" skipexisting="true"/>
-        <loadfile property="platform.expected.sha512" srcFile="${platform.checksum}">
-            <filterchain>
-                <striplinebreaks/>
-                <tokenfilter>
-                    <trim/>
-                </tokenfilter>
-            </filterchain>
-        </loadfile>
-        <checksum file="${platform.archive}" algorithm="SHA-512"
-                  property="${platform.expected.sha512}" verifyproperty="platform.checksum.valid"/>
-        <fail message="NetBeans archive SHA-512 mismatch. Delete ${platform.archive} and ${platform.checksum}, then retry.">
+        <checksum file="${platform.archive}" algorithm="SHA-256" property="platform.actual.sha256"/>
+        <condition property="platform.checksum.valid">
+            <equals arg1="${platform.actual.sha256}" arg2="${netbeans.distribution.sha256}"/>
+        </condition>
+        <fail message="NetBeans archive SHA-256 mismatch. Delete ${platform.archive}, then retry.">
             <condition><not><istrue value="${platform.checksum.valid}"/></not></condition>
         </fail>
         <delete dir="${nbplatform.active.dir}"/>
