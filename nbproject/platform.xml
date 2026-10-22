@@ -26,9 +26,17 @@
     </target>
 
     <target name="check-platform" depends="check-toolchain">
+        <loadfile property="platform.verified.sha256" srcFile="${nbplatform.active.dir}/.verified-distribution" failonerror="false">
+            <filterchain>
+                <striplinebreaks/>
+                <tokenfilter>
+                    <trim/>
+                </tokenfilter>
+            </filterchain>
+        </loadfile>
         <condition property="platform.ready">
             <and>
-                <available file="${nbplatform.active.dir}/.verified-distribution"/>
+                <equals arg1="${platform.verified.sha256}" arg2="${netbeans.distribution.sha256}"/>
                 <available file="${harness.dir}/suite.xml"/>
                 <available file="${nbplatform.active.dir}/platform/core/core.jar"/>
                 <available file="${nbplatform.active.dir}/ide/modules/org-netbeans-modules-projectapi-nb.jar"/>
@@ -56,7 +64,7 @@
             <cutdirsmapper dirs="1"/>
         </unzip>
         <chmod dir="${nbplatform.active.dir}/platform/lib" includes="nbexec" perm="755" osfamily="unix"/>
-        <echo file="${nbplatform.active.dir}/.verified-distribution">${netbeans.distribution.url}</echo>
+        <echo file="${nbplatform.active.dir}/.verified-distribution">${netbeans.distribution.sha256}</echo>
     </target>
 
     <target name="prepare" depends="download"/>

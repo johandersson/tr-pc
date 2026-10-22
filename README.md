@@ -62,9 +62,11 @@ private settings, so a previously selected IDE platform cannot silently replace
 them.
 
 Downloads are cached in `netbeans-plat/downloads`; subsequent builds reuse the
-prepared platform without network access. An existing platform from the old
-update-center bootstrap is replaced on the first build. To re-verify and
-re-extract the cached distribution, delete `netbeans-plat/25/.verified-distribution`.
+prepared platform without network access. The prepared marker records the pinned
+digest, so changing the version or digest forces verification and extraction again.
+An existing platform from the old update-center bootstrap is replaced on the
+first build. To re-verify and re-extract the cached distribution, delete
+`netbeans-plat/25/.verified-distribution`.
 For a checksum error, delete the ZIP named in the error, then retry. For download
 errors, check access to `https://archive.apache.org`. The pinned digest prevents
 an archive-host compromise from silently replacing the expected checksum.
