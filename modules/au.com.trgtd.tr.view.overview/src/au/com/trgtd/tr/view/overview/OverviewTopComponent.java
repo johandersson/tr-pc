@@ -28,6 +28,7 @@ import org.apache.batik.swing.JSVGCanvas;
 import org.openide.util.HelpCtx;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
+import org.openide.util.actions.SystemAction;
 import org.openide.windows.TopComponent;
 import au.com.trgtd.tr.util.Observable;
 import au.com.trgtd.tr.util.Observer;
@@ -131,7 +132,7 @@ public final class OverviewTopComponent extends Window {
     }
     
     private void switchScreen(Screen screen) {        
-        screen.action.actionPerformed(null);
+        SystemAction.get(screen.actionType).actionPerformed(null);
     }
 
     /**

@@ -19,6 +19,7 @@ package au.com.trgtd.tr.view.overview;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
+import org.openide.util.actions.SystemAction;
 
 public class OverviewActionTest {
 
@@ -27,5 +28,12 @@ public class OverviewActionTest {
     @Test
     public void testGetID() {
         assertEquals("overview", instance.getID());
+    }
+
+    @Test
+    public void testScreenActionsCanBeResolved() {
+        for (Overview.Screen screen : Overview.Screen.values()) {
+            assertNotNull(SystemAction.get(screen.actionType));
+        }
     }
 }

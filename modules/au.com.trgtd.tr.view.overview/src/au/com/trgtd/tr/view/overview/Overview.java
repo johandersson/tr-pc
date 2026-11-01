@@ -19,7 +19,6 @@ package au.com.trgtd.tr.view.overview;
 
 import au.com.trgtd.tr.data.NewAction;
 import java.awt.Cursor;
-import javax.swing.Action;
 import org.apache.batik.swing.JSVGCanvas;
 import org.apache.batik.swing.svg.SVGLoadEventDispatcherAdapter;
 import org.apache.batik.swing.svg.SVGLoadEventDispatcherEvent;
@@ -56,25 +55,25 @@ public class Overview extends ObservableImpl {
     
     /** Screen selection enumeration type. */
     public static enum Screen {
-        NEW("new", (Action)SystemAction.get(NewAction.class)),
-        CONTEXTS("contexts", (Action)SystemAction.get(ContextsAction.class)),
-        TOPICS("topics", (Action)SystemAction.get(TopicsAction.class)),
-        CRITERIA("criteria", (Action)SystemAction.get(CriteriaAction.class)),
-        COLLECT("collect", (Action)SystemAction.get(CollectThoughtsAction.class)),
-        PROCESS("process", (Action)SystemAction.get(ProcessThoughtsAction.class)),
-        INFORMATION("info", (Action)SystemAction.get(ReferencesAction.class)),
-        FUTURE("future", (Action)SystemAction.get(FuturesAction.class)),
-        ACTIONS("actions", (Action)SystemAction.get(RAAction.class)),
-        PROJECTS("projects", (Action)SystemAction.get(ProjectsAction.class)),
-        DOASAP("doasap", (Action)SystemAction.get(RAAction.class)),
-        DELEGATED("delegated", (Action)SystemAction.get(RAAction.class)),
-        SCHEDULED("scheduled", (Action)SystemAction.get(RAAction.class)),
-        DONE("done", (Action)SystemAction.get(RAAction.class));
+        NEW("new", NewAction.class),
+        CONTEXTS("contexts", ContextsAction.class),
+        TOPICS("topics", TopicsAction.class),
+        CRITERIA("criteria", CriteriaAction.class),
+        COLLECT("collect", CollectThoughtsAction.class),
+        PROCESS("process", ProcessThoughtsAction.class),
+        INFORMATION("info", ReferencesAction.class),
+        FUTURE("future", FuturesAction.class),
+        ACTIONS("actions", RAAction.class),
+        PROJECTS("projects", ProjectsAction.class),
+        DOASAP("doasap", RAAction.class),
+        DELEGATED("delegated", RAAction.class),
+        SCHEDULED("scheduled", RAAction.class),
+        DONE("done", RAAction.class);
         final String id;
-        final Action action;
-        Screen(String id, Action action) {
+        final Class<? extends SystemAction> actionType;
+        Screen(String id, Class<? extends SystemAction> actionType) {
             this.id = id;
-            this.action = action;
+            this.actionType = actionType;
         }
     }
     
