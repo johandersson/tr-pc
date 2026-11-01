@@ -1,5 +1,9 @@
+# Operating system files
 .DS_Store
+Thumbs.db
+Desktop.ini
 
+# Build outputs and local project state
 **/build/
 **/dist/
 **/private/
@@ -9,8 +13,19 @@ nbproject/**/tr-updates.zip
 
 netbeans-plat/
 
+# IDE and editor files
 .idea/
+.vscode/
 **/*.iml
+*.swp
+*.swo
+*~
 
-.gradle
+# Gradle and Kotlin state
+.gradle/
 .kotlin/
+
+# Java compiler and JVM crash output
+*.class
+hs_err_pid*.log
+replay_pid*.log

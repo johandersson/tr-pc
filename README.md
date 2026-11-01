@@ -1,133 +1,91 @@
 [![License](https://img.shields.io/github/license/thinkingrock-gtd/tr-pc)](https://github.com/thinkingrock-gtd/tr-pc/blob/master/LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/thinkingrock-gtd/tr-pc/build.yml?branch=main)](https://github.com/thinkingrock-gtd/tr-pc/actions?query=workflow%3AJavaCI+branch%3Amain)
 
-## ThinkingRock for Personal Computer (i.e. any Desktop or Laptop computer)
+# ThinkingRock for Personal Computer
 
+ThinkingRock is a desktop application for managing tasks and projects using the
+Getting Things Done methodology.
+
+## Build requirements
+
+- JDK 17 with `JAVA_HOME` and `PATH` configured
+- Apache Ant 1.10.14 or newer
+- Optional: [just](https://github.com/casey/just)
+
+The build downloads and verifies the pinned NetBeans Platform automatically.
+Gradle is provided by the included wrapper.
+
+## Build distributions
+
+### Standard package
+
+```shell
+ant build-zip
+```
+
+Output: `dist/trgtd.zip`
+
+This package requires Java on the target computer. After extracting it, start:
+
+- Windows x64: `trgtd\bin\trgtd.cmd`
+- Linux/macOS: `trgtd/bin/trgtd`
+
+On Windows, `trgtd.cmd` locates Java from `JAVA_HOME` or `PATH` and passes it to
+the native launcher.
+
+### Self-contained Windows package
+
+```shell
+ant build-windows-self-contained
+```
+
+Output: `dist/trgtd-windows-x64.zip`
+
+This is the recommended Windows distribution. It includes a stripped Java 17
+runtime, so users do **not** need to install Java. Distribute the complete ZIP,
+extract it, and start:
+
+```text
+trgtd\bin\trgtd.cmd
+```
+
+The build downloads a pinned Eclipse Temurin Windows JDK, verifies its SHA-256
+checksum, and uses `jlink` to include only the required Java modules.
+
+Equivalent `just` commands are `just build-zip` and
+`just build-windows-self-contained`.
+
+## Tests
+
+Run headless tests:
+
+```shell
+./gradlew -p gradle check
+```
+
+On Windows:
+
+```powershell
+gradlew.bat -p gradle check
+```
+
+Run all tests, including UI tests that require a graphical display:
+
+```shell
+./gradlew -p gradle check -Dtest.profile=allTests
+```
+
+Optional shortcuts are `just verify-headless`, `just verify-ci`, and
+`just verify`.
+
+## Reproducibility
+
+Downloaded NetBeans and Windows JDK archives are checksum-verified and cached in
+`netbeans-plat/downloads`. Versions and checksums are pinned in
+`nbproject/platform.properties`. Gradle dependency locks and verification
+metadata are also checked into the repository.
 
 ## License
 
-GNU General Public License v3.0 or later
-
-See [LICENSE](https://github.com/thinkingrock-gtd/tr-pc/blob/master/LICENSE) to see the full text.
-
-## How to build a project
-Ant builds and packages the application; Gradle runs the unit tests.
-Neither requires opening or installing the NetBeans IDE.
-
-### Warning
-Before starting ThinkingRock from sources, ensure you have a backup of your production data.
-We haven't yet figured out the configuration to cleanly separate the dev environment from the production configuration or data.
-This includes ReviewActions.xml as well.
-This issue will be solved in #33.
-
-### Compilation from a Terminal (without Netbeans)
-
-#### Preconditions
-- Install **JDK 17** (not just a JRE), and set `JAVA_HOME` and `PATH` to it.
-- Install [Apache Ant](https://ant.apache.org/manual/install.html) **1.10.14 or newer**.
-- Optional: [just](https://github.com/casey/just) is installed
-- Check `java -version` and `ant -version` before building. The build reports an
-  actionable error for unsupported tools.
-
-Java, the minimum Ant version, and NetBeans Platform **25** are configured in
-`nbproject/platform.properties`. Ant and Gradle both read this file; Gradle derives
-the matching NetBeans API release from the platform version. The Gradle wrapper
-pins Gradle itself, so a separate Gradle installation is unnecessary.
-
-#### Run TR directly from sources
-- Run `ant run-dev`, or `just run`. This builds first and then launches the
-  application through the calendar module. Back up production data first.
-
-### Build artefacts and run
-
-1. Open a terminal in the root of the repository.
-2. Run `ant build-zip`, or `ant clean build-zip` for a clean rebuild.
-   With `just` installed, use `just build-zip`.
-3. Find `trgtd.zip` in `dist` and extract it.
-4. In the extracted application folder, run the launcher in `bin` for your OS:
-   `trgtd.cmd` on 64-bit Windows, `trgtd` on Linux, or `trgtd` on macOS.
-
-On 64-bit Windows, `trgtd.cmd` selects a bundled runtime when present, then
-tries `JAVA_HOME`, then Java on `PATH`. It passes the resolved location to
-`trgtd64.exe`, avoiding the NetBeans launcher's obsolete registry-only Java
-detection. Keep the `64` suffix if invoking the executable directly: NetBeans
-uses it to select the native bridge and derive the application name. A legacy
-launcher is available as `trgtd32.exe` for 32-bit Java installations.
-
-#### Self-contained Windows package
-
-Run `ant build-windows-self-contained` to create
-`dist/trgtd-windows-x64.zip`. This package includes a compressed, stripped
-Windows x64 Java 17 runtime and does not require Java to be installed on the
-user's computer. Start it with `bin/trgtd.cmd`; it automatically selects the
-bundled runtime.
-
-The first build downloads the pinned Eclipse Temurin Windows JDK and verifies
-its SHA-256 digest. `jlink` then creates a runtime containing only the modules
-used by ThinkingRock, plus dynamically loaded charset, cryptography, locale,
-and ZIP providers. The full JDK is not included in the resulting package.
-
-#### Platform downloads and reproducibility
-
-The first build downloads the fixed Apache NetBeans binary ZIP over HTTPS and
-verifies it against the SHA-512 digest pinned in `nbproject/platform.properties`,
-before extracting only the harness, platform, and IDE clusters into the
-repository-local `netbeans-plat/25` directory. No IDE settings or update center
-are needed. Root Ant builds load repository platform settings before NetBeans
-private settings, so a previously selected IDE platform cannot silently replace
-them.
-
-Downloads are cached in `netbeans-plat/downloads`; subsequent builds reuse the
-prepared platform without network access. The prepared marker records the pinned
-digest, so changing the version or digest forces verification and extraction again.
-An existing platform from the old update-center bootstrap is replaced on the
-first build. To re-verify and re-extract the cached distribution, delete
-`netbeans-plat/25/.verified-distribution`.
-For a checksum error, delete the ZIP named in the error, then retry. For download
-errors, check access to `https://archive.apache.org`. The pinned digest prevents
-an archive-host compromise from silently replacing the expected checksum.
-
-#### Tests without renaming files
-
-- Run `./gradlew -p gradle check` on Linux/macOS, or
-  `gradlew.bat -p gradle check` on Windows.
-- Optional shortcuts: `just verify-headless` or `just verify-ci`.
-- Include UI tests with `./gradlew -p gradle check -Dtest.profile=allTests`
-  (requires a graphical display), or `just verify`.
-
-Gradle dependency locks and SHA-256 verification metadata are checked in. When
-updating dependencies, regenerate them with
-`./gradlew -p gradle check --write-locks --write-verification-metadata sha256`
-and
-`./gradlew -p gradle-plugins build --write-locks --write-verification-metadata sha256`,
-then review the generated lock and checksum changes.
-
-Gradle's settings live in `gradle/settings.gradle.kts` and use permanently named
-`tests.gradle.kts` build files, leaving the root project recognizable as an Ant
-project to NetBeans. There are no enable/disable or rename steps, including when
-tests fail. The first test run needs access to the Gradle and Maven repositories.
-
-CI uses the configured JDK, runs the headless tests, builds a clean Ant release
-ZIP, and uploads it as an artifact.
-Generated Kotlin state in `.kotlin/` is ignored, so command-line builds do not
-leave that local build state as an untracked repository change.
-
-### Run From NetBeans
-
-#### Precondition
-
-- [Netbeans](https://netbeans.apache.org/download/index.html) is installed
-- You have opened the tr-pc project in Netbeans
-
-#### Run
-- Open Netbeans and open the project
-- Menu File -> Open Project. Navigate to the local git clone of tr-pc.\
-![Project](/docs/images/readme_project.png)
-- Open the node *Module*, choose one of the TR-Modules (e.g. *TR Calendar*), right-click and select *Open Project*
-- Right-click the now open module, and select Run\
-![Project run](/docs/images/readme_run.png)
-> Note: To our current knowledge, running Ant target run on the main project "Thinking Rock" will not launch the tool. Hence the workaround with running it from e.g. the "TR Calendar" project.
-
-> Run `ant build` from a terminal once before running individual modules in the
-> IDE, to prepare the repository-local platform. Terminal builds do not require
-> opening the project in the IDE first.
+ThinkingRock is licensed under the GNU General Public License v3.0 or later.
+See [LICENSE](LICENSE).

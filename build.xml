@@ -10,8 +10,49 @@
     <property name="windows.jdk.archive" location="${windows.jdk.cache.dir}/${windows-jdk-archive-name}"/>
     <property name="windows.jdk.jmods.dir" location="netbeans-plat/windows-jdk-${windows-jdk-version}"/>
     <property name="windows.runtime.stage.dir" location="build/windows-x64"/>
+    <property name="rcedit.file" location="netbeans-plat/downloads/rcedit-x64.exe"/>
+    <property name="windows.app.icon" location="nbproject/trgtd.ico"/>
 
-    <target name="build-launchers" depends="suite.build-launchers">
+    <target name="-detect-windows-resource-editor">
+        <condition property="windows.resource.editor.supported">
+            <or>
+                <os family="windows"/>
+                <available file="/proc/sys/fs/binfmt_misc/WSLInterop"/>
+            </or>
+        </condition>
+    </target>
+
+    <target name="-prepare-windows-resource-editor"
+            depends="-detect-windows-resource-editor"
+            if="windows.resource.editor.supported">
+        <mkdir dir="${windows.jdk.cache.dir}"/>
+        <get src="${rcedit-url}" dest="${rcedit.file}" skipexisting="true"/>
+        <checksum file="${rcedit.file}" algorithm="SHA-256" property="rcedit.actual.sha256"/>
+        <condition property="rcedit.checksum.valid">
+            <equals arg1="${rcedit.actual.sha256}" arg2="${rcedit-sha256}"/>
+        </condition>
+        <fail message="rcedit SHA-256 mismatch. Delete ${rcedit.file}, then retry.">
+            <condition><not><istrue value="${rcedit.checksum.valid}"/></not></condition>
+        </fail>
+        <chmod file="${rcedit.file}" perm="755" osfamily="unix"/>
+    </target>
+
+    <target name="-brand-windows-launchers"
+            depends="-prepare-windows-resource-editor,suite.build-launchers"
+            if="windows.resource.editor.supported">
+        <exec executable="${rcedit.file}" failonerror="true">
+            <arg path="${build.launcher.dir}/bin/${app.name}.exe"/>
+            <arg value="--set-icon"/>
+            <arg path="${windows.app.icon}"/>
+        </exec>
+        <exec executable="${rcedit.file}" failonerror="true">
+            <arg path="${build.launcher.dir}/bin/${app.name}64.exe"/>
+            <arg value="--set-icon"/>
+            <arg path="${windows.app.icon}"/>
+        </exec>
+    </target>
+
+    <target name="build-launchers" depends="-brand-windows-launchers">
         <!-- NetBeans launchers derive the app name from architecture-specific filenames. -->
         <copy file="${build.launcher.dir}/bin/${app.name}.exe"
               tofile="${build.launcher.dir}/bin/${app.name}32.exe"
