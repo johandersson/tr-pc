@@ -6,6 +6,103 @@
     <ant antfile="nbproject/platform.xml" target="prepare"/>
     <import file="nbproject/build-impl.xml"/>
 
+    <property name="windows.jdk.cache.dir" location="netbeans-plat/downloads"/>
+    <property name="windows.jdk.archive" location="${windows.jdk.cache.dir}/${windows-jdk-archive-name}"/>
+    <property name="windows.jdk.jmods.dir" location="netbeans-plat/windows-jdk-${windows-jdk-version}"/>
+    <property name="windows.runtime.stage.dir" location="build/windows-x64"/>
+
+    <target name="build-launchers" depends="suite.build-launchers">
+        <!-- NetBeans launchers derive the app name from architecture-specific filenames. -->
+        <copy file="${build.launcher.dir}/bin/${app.name}.exe"
+              tofile="${build.launcher.dir}/bin/${app.name}32.exe"
+              overwrite="true"/>
+        <delete file="${build.launcher.dir}/bin/${app.name}.exe"/>
+        <copy file="nbproject/${app.name}.cmd"
+              tofile="${build.launcher.dir}/bin/${app.name}.cmd"
+              overwrite="true"/>
+        <fixcrlf file="${build.launcher.dir}/bin/${app.name}.cmd" eol="crlf"/>
+    </target>
+
+    <target name="-check-windows-jdk">
+        <loadfile property="windows.jdk.verified.sha256"
+                  srcFile="${windows.jdk.jmods.dir}/.verified-distribution"
+                  failonerror="false">
+            <filterchain>
+                <striplinebreaks/>
+                <tokenfilter>
+                    <trim/>
+                </tokenfilter>
+            </filterchain>
+        </loadfile>
+        <condition property="windows.jdk.ready">
+            <and>
+                <equals arg1="${windows.jdk.verified.sha256}" arg2="${windows-jdk-sha256}"/>
+                <available file="${windows.jdk.jmods.dir}/jmods/java.base.jmod"/>
+            </and>
+        </condition>
+    </target>
+
+    <target name="-prepare-windows-jdk" depends="-check-windows-jdk" unless="windows.jdk.ready">
+        <mkdir dir="${windows.jdk.cache.dir}"/>
+        <get src="${windows-jdk-url}" dest="${windows.jdk.archive}" skipexisting="true"/>
+        <checksum file="${windows.jdk.archive}" algorithm="SHA-256" property="windows.jdk.actual.sha256"/>
+        <condition property="windows.jdk.checksum.valid">
+            <equals arg1="${windows.jdk.actual.sha256}" arg2="${windows-jdk-sha256}"/>
+        </condition>
+        <fail message="Windows JDK SHA-256 mismatch. Delete ${windows.jdk.archive}, then retry.">
+            <condition><not><istrue value="${windows.jdk.checksum.valid}"/></not></condition>
+        </fail>
+        <delete dir="${windows.jdk.jmods.dir}"/>
+        <mkdir dir="${windows.jdk.jmods.dir}"/>
+        <unzip src="${windows.jdk.archive}" dest="${windows.jdk.jmods.dir}">
+            <patternset>
+                <include name="*/jmods/**"/>
+            </patternset>
+            <cutdirsmapper dirs="1"/>
+        </unzip>
+        <echo file="${windows.jdk.jmods.dir}/.verified-distribution">${windows-jdk-sha256}</echo>
+    </target>
+
+    <target name="build-windows-self-contained"
+            depends="build-zip,-prepare-windows-jdk"
+            description="Builds a Windows x64 ZIP with a stripped private Java runtime.">
+        <property name="windows.runtime.image.dir"
+                  location="${windows.runtime.stage.dir}/${app.name}/runtime"/>
+        <fail message="JDK ${java-version} jlink is required at ${java.home}/bin/jlink.">
+            <condition>
+                <not>
+                    <or>
+                        <available file="${java.home}/bin/jlink"/>
+                        <available file="${java.home}/bin/jlink.exe"/>
+                    </or>
+                </not>
+            </condition>
+        </fail>
+        <delete dir="${windows.runtime.stage.dir}"/>
+        <mkdir dir="${windows.runtime.stage.dir}"/>
+        <unzip src="${dist.dir}/${app.name}.zip" dest="${windows.runtime.stage.dir}"/>
+        <exec executable="${java.home}/bin/jlink" failonerror="true">
+            <arg value="--module-path"/>
+            <arg path="${windows.jdk.jmods.dir}/jmods"/>
+            <arg value="--add-modules"/>
+            <arg value="${windows-runtime-modules}"/>
+            <arg value="--output"/>
+            <arg path="${windows.runtime.image.dir}"/>
+            <arg value="--strip-debug"/>
+            <arg value="--no-header-files"/>
+            <arg value="--no-man-pages"/>
+            <arg value="--compress=2"/>
+            <arg value="--include-locales=en,de,es,fr,nl"/>
+        </exec>
+        <echo file="${windows.runtime.stage.dir}/${app.name}/etc/${app.name}.conf"
+              append="true">jdkhome="runtime"
+</echo>
+        <zip destfile="${dist.dir}/${app.name}-windows-x64.zip">
+            <zipfileset dir="${windows.runtime.stage.dir}"/>
+        </zip>
+        <echo>Created self-contained Windows package: ${dist.dir}/${app.name}-windows-x64.zip</echo>
+    </target>
+
     <target name="run-dev" depends="build" description="Runs ThinkingRock without the NetBeans IDE. Back up production data first.">
         <ant antfile="modules/au.com.trgtd.tr.calendar/build.xml" target="run"/>
     </target>

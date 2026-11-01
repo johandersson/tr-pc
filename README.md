@@ -45,16 +45,32 @@ pins Gradle itself, so a separate Gradle installation is unnecessary.
    With `just` installed, use `just build-zip`.
 3. Find `trgtd.zip` in `dist` and extract it.
 4. In the extracted application folder, run the launcher in `bin` for your OS:
-   `trgtd.exe` on Windows, `trgtd` on Linux, or `trgtd` on macOS.
+   `trgtd.cmd` on 64-bit Windows, `trgtd` on Linux, or `trgtd` on macOS.
 
-On Windows, the executable is `.../bin/trgtd.exe`. It is the
-application launcher, not a standalone executable; keep the extracted
-application folders together when running it.
+On 64-bit Windows, `trgtd.cmd` selects a bundled runtime when present, then
+tries `JAVA_HOME`, then Java on `PATH`. It passes the resolved location to
+`trgtd64.exe`, avoiding the NetBeans launcher's obsolete registry-only Java
+detection. Keep the `64` suffix if invoking the executable directly: NetBeans
+uses it to select the native bridge and derive the application name. A legacy
+launcher is available as `trgtd32.exe` for 32-bit Java installations.
+
+#### Self-contained Windows package
+
+Run `ant build-windows-self-contained` to create
+`dist/trgtd-windows-x64.zip`. This package includes a compressed, stripped
+Windows x64 Java 17 runtime and does not require Java to be installed on the
+user's computer. Start it with `bin/trgtd.cmd`; it automatically selects the
+bundled runtime.
+
+The first build downloads the pinned Eclipse Temurin Windows JDK and verifies
+its SHA-256 digest. `jlink` then creates a runtime containing only the modules
+used by ThinkingRock, plus dynamically loaded charset, cryptography, locale,
+and ZIP providers. The full JDK is not included in the resulting package.
 
 #### Platform downloads and reproducibility
 
 The first build downloads the fixed Apache NetBeans binary ZIP over HTTPS and
-verifies it against the SHA-256 digest pinned in `nbproject/platform.properties`,
+verifies it against the SHA-512 digest pinned in `nbproject/platform.properties`,
 before extracting only the harness, platform, and IDE clusters into the
 repository-local `netbeans-plat/25` directory. No IDE settings or update center
 are needed. Root Ant builds load repository platform settings before NetBeans
