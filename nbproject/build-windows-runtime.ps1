@@ -22,15 +22,18 @@ $jdk = Convert-ToWindowsPath $JdkDir
 $modulePath = Convert-ToWindowsPath $ModulePath
 $output = Convert-ToWindowsPath $OutputDir
 
-& (Join-Path $jdk "bin\jlink.exe") `
-    --module-path $modulePath `
-    --add-modules $Modules `
-    --output $output `
-    --strip-debug `
-    --no-header-files `
-    --no-man-pages `
-    --compress zip-6 `
-    --include-locales en,de,es,fr,nl
+$jlinkArgs = @(
+    "--module-path", $modulePath,
+    "--add-modules", $Modules,
+    "--output", $output,
+    "--strip-debug",
+    "--no-header-files",
+    "--no-man-pages",
+    "--compress", "zip-6",
+    "--include-locales", "en,de,es,fr,nl"
+)
+
+& (Join-Path $jdk "bin\jlink.exe") $jlinkArgs
 
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE

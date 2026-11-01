@@ -23,6 +23,7 @@ import au.com.trgtd.tr.util.Observer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.openide.util.Lookup;
@@ -54,6 +55,7 @@ public class Services {
     private final Lookup.Result lookupResult;
     private final ActionsObserver actionsObserver;
     private final ObservableImpl actionsObservable;
+    private final AtomicLong actionsRevision = new AtomicLong();
     
     private Services() {
         actionsObserver = new ActionsObserver();
@@ -68,6 +70,7 @@ public class Services {
     
     private void dataChanged() {
         actionsObservable.removeObservers();
+        actionsRevision.incrementAndGet();
         
         Data data = DataLookup.instance().lookup(Data.class);
         if (data != null) {
@@ -226,8 +229,16 @@ public class Services {
     private final class ActionsObserver implements Observer {
         @Override
         public void update(Observable observable, Object argument) {
+            if (argument == Action.FIELD.Notes) {
+                return;
+            }
+            actionsRevision.incrementAndGet();
             actionsObservable.notifyObservers(observable, argument);
         }
+    }
+
+    public long getActionsRevision() {
+        return actionsRevision.get();
     }
     
     public void addActionsObserver(Observer observer) {
@@ -506,4 +517,3 @@ public class Services {
     }
     
 }
-

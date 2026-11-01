@@ -268,10 +268,11 @@ public class XStreamDataStore extends AbstractDataStore implements PreferenceCha
 
         setData(null);
 
+        File dataFile = getDataFile();
         File latestRecoveryFile = getLatestRecoveryFile();
 
         // return if no data file or recovery file - probably the first time.
-        if (!getDataFile().exists() && latestRecoveryFile == null) {
+        if (!dataFile.isFile() && latestRecoveryFile == null) {
             LOG.info("No data file or recovery file found.");
             return;
         }
@@ -279,9 +280,9 @@ public class XStreamDataStore extends AbstractDataStore implements PreferenceCha
         String error = "";
 
         // Normal case: read the existing data file
-        if (getDataFile().exists()) {
+        if (dataFile.isFile()) {
             try {
-                Data data = XStreamWrapper.instance().load(getDataFile());
+                Data data = XStreamWrapper.instance().load(dataFile);
                 setData(data);
                 return;
             } catch (Exception ex) {

@@ -120,6 +120,7 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
         }
 
         actionsList = Services.instance.getAllActions();
+        actionsRevision = Services.instance.getActionsRevision();
 
         actionsEventList = new BasicEventList<>();
         actionsEventList.addAll(actionsList);
@@ -445,10 +446,8 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
      * @param argument The change details argument.
      */
     public void update(final Observable observable, final Object argument) {
-        if (argument == Action.FIELD.Notes) {
-            return;            
-        }
         EventQueue.invokeLater(() -> {
+            actionsRevision = Services.instance.getActionsRevision();
             if (observable instanceof Action observedAction) {
                 for (Action selectedAction : selectionModel.getSelected()) {
                     if (selectedAction.getID() != observedAction.getID()) {
@@ -535,9 +534,17 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
     public void resetModel() {
         Lock lock = actionsEventList.getReadWriteLock().writeLock();
         lock.lock();
-        actionsEventList.clear();
-        actionsEventList.addAll(Services.instance.getAllActions());
-        lock.unlock();
+        try {
+            actionsEventList.clear();
+            actionsEventList.addAll(Services.instance.getAllActions());
+            actionsRevision = Services.instance.getActionsRevision();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean isModelCurrent() {
+        return actionsRevision == Services.instance.getActionsRevision();
     }
 
     // <editor-fold defaultstate="collapsed" desc=" Generated Code ">//GEN-BEGIN:initComponents
@@ -577,4 +584,5 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
     public SortedList<Action> actionsSortedList;
     private EventSelectionModel<Action> selectionModel;
     private TableComparatorChooser<Action> tableSorter;
+    private long actionsRevision;
 }

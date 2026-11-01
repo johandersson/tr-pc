@@ -13,6 +13,24 @@
     <property name="rcedit.file" location="netbeans-plat/downloads/rcedit-x64.exe"/>
     <property name="windows.app.icon" location="nbproject/trgtd.ico"/>
 
+    <target name="branding" depends="-init" if="run.branding">
+        <property name="generated.branding.dir" location="${suite.build.dir}/branding"/>
+        <delete dir="${generated.branding.dir}"/>
+        <copy todir="${generated.branding.dir}">
+            <fileset dir="${branding.dir}"/>
+        </copy>
+        <copy file="${branding.dir}/modules/org-netbeans-core.jar/org/netbeans/core/ui/Bundle.properties"
+              tofile="${generated.branding.dir}/modules/org-netbeans-core.jar/org/netbeans/core/ui/Bundle.properties"
+              overwrite="true">
+            <filterset>
+                <filter token="NETBEANS_PLATFORM_VERSION" value="${netbeans-plat-version}"/>
+            </filterset>
+        </copy>
+        <mkdir dir="${cluster}"/>
+        <branding cluster="${cluster}" overrides="${generated.branding.dir}"
+                  token="${branding.token}" locales="${branding.locales.impl}"/>
+    </target>
+
     <target name="-detect-windows-resource-editor">
         <condition property="windows.resource.editor.supported">
             <or>

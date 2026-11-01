@@ -195,12 +195,6 @@ public final class ReviewActionsTopComponent extends Window implements ActionsPr
     }
 
 
-    @Override
-    protected void componentOpened() {
-        super.componentOpened();
-        panel.refresh();
-    }
-
 //  @Override
 //  protected void componentClosed() {
 //      LOG.log(Level.INFO, "CLOSED ACTIONS: {0}", getName());
@@ -216,8 +210,10 @@ public final class ReviewActionsTopComponent extends Window implements ActionsPr
         FRAME.addComponentListener(windowListener);
         panel.stopObserving();
         panel.clearSelection();
-        panel.resetModel();
-        panel.refresh();
+        if (!panel.isModelCurrent()) {
+            panel.resetModel();
+            panel.refresh();
+        }
         panel.startObserving();
         EventQueue.invokeLater(() -> {
             showHideFilters();
