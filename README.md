@@ -8,7 +8,7 @@ Getting Things Done methodology.
 
 ## Build requirements
 
-- JDK 17 with `JAVA_HOME` and `PATH` configured
+- JDK 21 or newer with `JAVA_HOME` and `PATH` configured (JDK 27 is tested)
 - Apache Ant 1.10.14 or newer
 - Optional: [just](https://github.com/casey/just)
 
@@ -41,7 +41,7 @@ ant build-windows-self-contained
 
 Output: `dist/trgtd-windows-x64.zip`
 
-This is the recommended Windows distribution. It includes a stripped Java 17
+This is the recommended Windows distribution. It includes a stripped Java 27
 runtime, so users do **not** need to install Java. Distribute the complete ZIP,
 extract it, and start:
 
@@ -50,7 +50,9 @@ trgtd\bin\trgtd.cmd
 ```
 
 The build downloads a pinned Eclipse Temurin Windows JDK, verifies its SHA-256
-checksum, and uses `jlink` to include only the required Java modules.
+checksum, and uses its native `jlink.exe` through PowerShell to include only
+the required Java modules. Run this target from Windows or WSL with PowerShell
+available.
 
 Equivalent `just` commands are `just build-zip` and
 `just build-windows-self-contained`.

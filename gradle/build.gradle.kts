@@ -40,6 +40,7 @@ subprojects {
 
         testImplementation(rootProject.libs.junit.jupiter)
         testImplementation(rootProject.libs.junit4)
+        testRuntimeOnly(rootProject.libs.junit.platform.launcher)
         testRuntimeOnly(rootProject.libs.junit.vintage.engine)
     }
 

@@ -5,11 +5,11 @@
     <property name="platform.archive" location="${platform.cache.dir}/netbeans-${netbeans-plat-version}-bin.zip"/>
 
     <target name="check-toolchain">
-        <fail message="Use JDK ${java-version} (not a JRE). Set JAVA_HOME and PATH; current Java is ${java.version}.">
+        <fail message="Use JDK ${java-version} or newer (not a JRE). Set JAVA_HOME and PATH; current Java is ${java.version}.">
             <condition>
                 <not>
                     <and>
-                        <equals arg1="${ant.java.version}" arg2="${java-version}"/>
+                        <javaversion atleast="${java-version}"/>
                         <or>
                             <available file="${java.home}/bin/javac"/>
                             <available file="${java.home}/bin/javac.exe"/>

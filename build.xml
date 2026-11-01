@@ -8,7 +8,7 @@
 
     <property name="windows.jdk.cache.dir" location="netbeans-plat/downloads"/>
     <property name="windows.jdk.archive" location="${windows.jdk.cache.dir}/${windows-jdk-archive-name}"/>
-    <property name="windows.jdk.jmods.dir" location="netbeans-plat/windows-jdk-${windows-jdk-version}"/>
+    <property name="windows.jdk.dir" location="netbeans-plat/windows-jdk-${windows-jdk-version}"/>
     <property name="windows.runtime.stage.dir" location="build/windows-x64"/>
     <property name="rcedit.file" location="netbeans-plat/downloads/rcedit-x64.exe"/>
     <property name="windows.app.icon" location="nbproject/trgtd.ico"/>
@@ -66,7 +66,7 @@
 
     <target name="-check-windows-jdk">
         <loadfile property="windows.jdk.verified.sha256"
-                  srcFile="${windows.jdk.jmods.dir}/.verified-distribution"
+                  srcFile="${windows.jdk.dir}/.verified-distribution"
                   failonerror="false">
             <filterchain>
                 <striplinebreaks/>
@@ -78,7 +78,8 @@
         <condition property="windows.jdk.ready">
             <and>
                 <equals arg1="${windows.jdk.verified.sha256}" arg2="${windows-jdk-sha256}"/>
-                <available file="${windows.jdk.jmods.dir}/jmods/java.base.jmod"/>
+                <available file="${windows.jdk.dir}/bin/jlink.exe"/>
+                <available file="${windows.jdk.dir}/jmods/java.base.jmod"/>
             </and>
         </condition>
     </target>
@@ -93,15 +94,12 @@
         <fail message="Windows JDK SHA-256 mismatch. Delete ${windows.jdk.archive}, then retry.">
             <condition><not><istrue value="${windows.jdk.checksum.valid}"/></not></condition>
         </fail>
-        <delete dir="${windows.jdk.jmods.dir}"/>
-        <mkdir dir="${windows.jdk.jmods.dir}"/>
-        <unzip src="${windows.jdk.archive}" dest="${windows.jdk.jmods.dir}">
-            <patternset>
-                <include name="*/jmods/**"/>
-            </patternset>
+        <delete dir="${windows.jdk.dir}"/>
+        <mkdir dir="${windows.jdk.dir}"/>
+        <unzip src="${windows.jdk.archive}" dest="${windows.jdk.dir}">
             <cutdirsmapper dirs="1"/>
         </unzip>
-        <echo file="${windows.jdk.jmods.dir}/.verified-distribution">${windows-jdk-sha256}</echo>
+        <echo file="${windows.jdk.dir}/.verified-distribution">${windows-jdk-sha256}</echo>
     </target>
 
     <target name="build-windows-self-contained"
@@ -109,32 +107,27 @@
             description="Builds a Windows x64 ZIP with a stripped private Java runtime.">
         <property name="windows.runtime.image.dir"
                   location="${windows.runtime.stage.dir}/${app.name}/runtime"/>
-        <fail message="JDK ${java-version} jlink is required at ${java.home}/bin/jlink.">
-            <condition>
-                <not>
-                    <or>
-                        <available file="${java.home}/bin/jlink"/>
-                        <available file="${java.home}/bin/jlink.exe"/>
-                    </or>
-                </not>
-            </condition>
-        </fail>
         <delete dir="${windows.runtime.stage.dir}"/>
         <mkdir dir="${windows.runtime.stage.dir}"/>
         <unzip src="${dist.dir}/${app.name}.zip" dest="${windows.runtime.stage.dir}"/>
-        <exec executable="${java.home}/bin/jlink" failonerror="true">
-            <arg value="--module-path"/>
-            <arg path="${windows.jdk.jmods.dir}/jmods"/>
-            <arg value="--add-modules"/>
-            <arg value="${windows-runtime-modules}"/>
-            <arg value="--output"/>
-            <arg path="${windows.runtime.image.dir}"/>
-            <arg value="--strip-debug"/>
-            <arg value="--no-header-files"/>
-            <arg value="--no-man-pages"/>
-            <arg value="--compress=2"/>
-            <arg value="--include-locales=en,de,es,fr,nl"/>
+        <exec executable="powershell.exe" failonerror="true">
+            <arg value="-NoProfile"/>
+            <arg value="-NonInteractive"/>
+            <arg value="-ExecutionPolicy"/>
+            <arg value="Bypass"/>
+            <arg value="-Command"/>
+            <arg value="$script = '${basedir}/nbproject/build-windows-runtime.ps1'; if ($script.StartsWith('/')) { $script = (wsl.exe wslpath -w $script).Trim() }; &amp; $script -JdkDir '${windows.jdk.dir}' -ModulePath '${windows.jdk.dir}/jmods' -OutputDir '${windows.runtime.image.dir}' -Modules '${windows-runtime-modules}'; exit $LASTEXITCODE"/>
         </exec>
+        <fail message="The Windows runtime is incomplete: java.exe or jvm.dll is missing.">
+            <condition>
+                <not>
+                    <and>
+                        <available file="${windows.runtime.image.dir}/bin/java.exe"/>
+                        <available file="${windows.runtime.image.dir}/bin/server/jvm.dll"/>
+                    </and>
+                </not>
+            </condition>
+        </fail>
         <echo file="${windows.runtime.stage.dir}/${app.name}/etc/${app.name}.conf"
               append="true">jdkhome="runtime"
 </echo>
