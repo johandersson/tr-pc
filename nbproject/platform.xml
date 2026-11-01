@@ -26,7 +26,7 @@
     </target>
 
     <target name="check-platform" depends="check-toolchain">
-        <loadfile property="platform.verified.sha256" srcFile="${nbplatform.active.dir}/.verified-distribution" failonerror="false">
+        <loadfile property="platform.verified.sha512" srcFile="${nbplatform.active.dir}/.verified-distribution" failonerror="false">
             <filterchain>
                 <striplinebreaks/>
                 <tokenfilter>
@@ -36,7 +36,7 @@
         </loadfile>
         <condition property="platform.ready">
             <and>
-                <equals arg1="${platform.verified.sha256}" arg2="${netbeans.distribution.sha256}"/>
+                <equals arg1="${platform.verified.sha512}" arg2="${netbeans.distribution.sha512}"/>
                 <available file="${harness.dir}/suite.xml"/>
                 <available file="${nbplatform.active.dir}/platform/core/core.jar"/>
                 <available file="${nbplatform.active.dir}/ide/modules/org-netbeans-modules-projectapi-nb.jar"/>
@@ -47,11 +47,11 @@
     <target name="download" depends="check-platform" unless="platform.ready">
         <mkdir dir="${platform.cache.dir}"/>
         <get src="${netbeans.distribution.url}" dest="${platform.archive}" skipexisting="true"/>
-        <checksum file="${platform.archive}" algorithm="SHA-256" property="platform.actual.sha256"/>
+        <checksum file="${platform.archive}" algorithm="SHA-512" property="platform.actual.sha512"/>
         <condition property="platform.checksum.valid">
-            <equals arg1="${platform.actual.sha256}" arg2="${netbeans.distribution.sha256}"/>
+            <equals arg1="${platform.actual.sha512}" arg2="${netbeans.distribution.sha512}"/>
         </condition>
-        <fail message="NetBeans archive SHA-256 mismatch. Delete ${platform.archive}, then retry.">
+        <fail message="NetBeans archive SHA-512 mismatch. Delete ${platform.archive}, then retry.">
             <condition><not><istrue value="${platform.checksum.valid}"/></not></condition>
         </fail>
         <delete dir="${nbplatform.active.dir}"/>
@@ -64,7 +64,7 @@
             <cutdirsmapper dirs="1"/>
         </unzip>
         <chmod dir="${nbplatform.active.dir}/platform/lib" includes="nbexec" perm="755" osfamily="unix"/>
-        <echo file="${nbplatform.active.dir}/.verified-distribution">${netbeans.distribution.sha256}</echo>
+        <echo file="${nbplatform.active.dir}/.verified-distribution">${netbeans.distribution.sha512}</echo>
     </target>
 
     <target name="prepare" depends="download"/>
