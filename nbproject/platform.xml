@@ -3,6 +3,9 @@
     <property file="nbproject/platform.properties"/>
     <property name="platform.cache.dir" location="netbeans-plat/downloads"/>
     <property name="platform.archive" location="${platform.cache.dir}/netbeans-${netbeans-plat-version}-bin.zip"/>
+    <property name="javahelp.runtime.archive" location="${platform.cache.dir}/jhall-2.0_05.jar"/>
+    <property name="javahelp.license.file" location="${platform.cache.dir}/jhall-2.0_05-license.txt"/>
+    <property name="javahelp.module.jar" location="${nbplatform.active.dir}/platform/modules/org-netbeans-modules-javahelp.jar"/>
 
     <target name="check-toolchain">
         <fail message="Use JDK ${java-version} or newer (not a JRE). Set JAVA_HOME and PATH; current Java is ${java.version}.">
@@ -67,5 +70,48 @@
         <echo file="${nbplatform.active.dir}/.verified-distribution">${netbeans.distribution.sha512}</echo>
     </target>
 
-    <target name="prepare" depends="download"/>
+    <target name="check-javahelp" depends="download">
+        <condition property="javahelp.ready">
+            <resourcecount count="2">
+                <zipfileset src="${javahelp.module.jar}"
+                            includes="javax/help/JHelp.class,META-INF/LICENSE.javahelp"/>
+            </resourcecount>
+        </condition>
+    </target>
+
+    <target name="prepare-javahelp" depends="check-javahelp" unless="javahelp.ready">
+        <get src="${javahelp.runtime.url}" dest="${javahelp.runtime.archive}" skipexisting="true"/>
+        <checksum file="${javahelp.runtime.archive}" algorithm="SHA-256" property="javahelp.runtime.actual.sha256"/>
+        <fail message="JavaHelp SHA-256 mismatch. Delete ${javahelp.runtime.archive}, then retry.">
+            <condition>
+                <not><equals arg1="${javahelp.runtime.actual.sha256}" arg2="${javahelp.runtime.sha256}"/></not>
+            </condition>
+        </fail>
+        <get src="${javahelp.license.url}" dest="${javahelp.license.file}" skipexisting="true"/>
+        <checksum file="${javahelp.license.file}" algorithm="SHA-256" property="javahelp.license.actual.sha256"/>
+        <fail message="JavaHelp license SHA-256 mismatch. Delete ${javahelp.license.file}, then retry.">
+            <condition>
+                <not><equals arg1="${javahelp.license.actual.sha256}" arg2="${javahelp.license.sha256}"/></not>
+            </condition>
+        </fail>
+        <!-- NetBeans compiles against JavaHelp but omits its GPL runtime from the binary distribution. -->
+        <jar destfile="${javahelp.module.jar}" update="true">
+            <zipfileset src="${javahelp.runtime.archive}" excludes="META-INF/**"/>
+            <zipfileset file="${javahelp.license.file}" fullpath="META-INF/LICENSE.javahelp"/>
+        </jar>
+        <touch file="${nbplatform.active.dir}/platform/.lastModified"/>
+    </target>
+
+    <target name="verify-javahelp" depends="prepare-javahelp">
+        <fail message="JavaHelp runtime is unavailable in ${javahelp.module.jar}.">
+            <condition>
+                <not>
+                    <available classname="javax.help.JHelp"
+                               classpath="${javahelp.module.jar}" ignoresystemclasses="true"/>
+                </not>
+            </condition>
+        </fail>
+    </target>
+
+    <target name="prepare" depends="verify-javahelp"/>
 </project>

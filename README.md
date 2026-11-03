@@ -13,6 +13,8 @@ Getting Things Done methodology.
 - Optional: [just](https://github.com/casey/just)
 
 The build downloads and verifies the pinned NetBeans Platform automatically.
+It also restores the JavaHelp runtime omitted from the Apache binary distribution,
+so Contextual Help and F1 work without installing additional libraries.
 Gradle is provided by the included wrapper.
 
 ## Build distributions
@@ -82,7 +84,7 @@ Optional shortcuts are `just verify-headless`, `just verify-ci`, and
 
 ## Reproducibility
 
-Downloaded NetBeans and Windows JDK archives are checksum-verified and cached in
+Downloaded NetBeans, JavaHelp, and Windows JDK archives are checksum-verified and cached in
 `netbeans-plat/downloads`. Versions and checksums are pinned in
 `nbproject/platform.properties`. Gradle dependency locks and verification
 metadata are also checked into the repository.
@@ -91,3 +93,7 @@ metadata are also checked into the repository.
 
 ThinkingRock is licensed under the GNU General Public License v3.0 or later.
 See [LICENSE](LICENSE).
+
+The JavaHelp runtime is distributed under GPL v2 with the Classpath Exception.
+Its license is included as `META-INF/LICENSE.javahelp` in the packaged NetBeans
+JavaHelp module.
