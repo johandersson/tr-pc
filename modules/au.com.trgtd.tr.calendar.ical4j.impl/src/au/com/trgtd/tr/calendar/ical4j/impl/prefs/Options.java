@@ -34,6 +34,7 @@ public class Options {
     private static final Preferences PREFS = Constants.getPrefs("calendar");
 
     private static final String KEY_PATH = "icalendar.path";
+    private static final String KEY_IMPORT_PATH = "icalendar.import.path";
     private static final String KEY_TIMEZONE = "timezone.id";
     private static final String DEF_PATH = System.getProperty("user.home");
     private static final String DEF_TIMEZONE = "";
@@ -52,6 +53,15 @@ public class Options {
      */
     public static final void setICalendarPath(String value) {
         PREFS.put(KEY_PATH, value);
+        flush();
+    }
+
+    public static String getImportPath() {
+        return PREFS.get(KEY_IMPORT_PATH, DEF_PATH);
+    }
+
+    public static void setImportPath(String value) {
+        PREFS.put(KEY_IMPORT_PATH, value);
         flush();
     }
 

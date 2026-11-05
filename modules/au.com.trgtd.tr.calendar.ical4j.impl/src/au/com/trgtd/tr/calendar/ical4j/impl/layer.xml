@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE filesystem PUBLIC "-//NetBeans//DTD Filesystem 1.1//EN" "http://www.netbeans.org/dtds/filesystem-1_1.dtd">
+<filesystem>
+    <folder name="Actions">
+        <folder name="File">
+            <file name="au-com-trgtd-tr-calendar-ical4j-impl-ImportICalendarAction.instance"/>
+        </folder>
+    </folder>
+    <folder name="Menu">
+        <folder name="File">
+            <folder name="Import">
+                <file name="au-com-trgtd-tr-calendar-ical4j-impl-ImportICalendarAction.shadow">
+                    <attr name="originalFile" stringvalue="Actions/File/au-com-trgtd-tr-calendar-ical4j-impl-ImportICalendarAction.instance"/>
+                    <attr name="position" intvalue="20"/>
+                </file>
+            </folder>
+        </folder>
+    </folder>
+</filesystem>
