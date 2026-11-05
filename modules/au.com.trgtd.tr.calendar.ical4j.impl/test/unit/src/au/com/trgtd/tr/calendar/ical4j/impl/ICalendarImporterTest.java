@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import tr.model.Data;
@@ -60,6 +61,7 @@ public class ICalendarImporterTest {
         assertTrue(action.getNotes().contains("Review the plan"));
         assertTrue(action.getNotes().contains("Location: Office"));
         ActionStateScheduled state = (ActionStateScheduled) action.getState();
+        assertSame(Date.class, state.getDate().getClass());
         assertEquals(Date.from(Instant.parse("2026-11-05T10:00:00Z")), state.getDate());
         assertEquals(1, state.getDurationHours());
         assertEquals(30, state.getDurationMinutes());

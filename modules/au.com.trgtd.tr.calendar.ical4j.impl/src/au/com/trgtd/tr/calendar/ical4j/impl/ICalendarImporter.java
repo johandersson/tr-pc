@@ -222,7 +222,13 @@ final class ICalendarImporter {
             appendNote(notes, "Location: " + event.getLocation().getValue().trim());
         }
         appendNote(notes, UID_MARKER_PREFIX + key + "]");
-        return new EventAction(key, description, notes.toString(), start, durationMinutes, false);
+        return new EventAction(
+                key,
+                description,
+                notes.toString(),
+                new Date(start.getTime()),
+                durationMinutes,
+                false);
     }
 
     private static String fallbackUid(VEvent event, Date start) {
