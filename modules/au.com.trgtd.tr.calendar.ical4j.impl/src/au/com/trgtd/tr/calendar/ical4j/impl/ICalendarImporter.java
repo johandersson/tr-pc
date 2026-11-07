@@ -47,6 +47,7 @@ import net.fortuna.ical4j.model.PropertyFactory;
 import net.fortuna.ical4j.model.PropertyFactoryRegistry;
 import net.fortuna.ical4j.model.TimeZoneRegistryFactory;
 import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.parameter.XParameter;
 import net.fortuna.ical4j.model.property.DateProperty;
 import net.fortuna.ical4j.model.property.Status;
 import net.fortuna.ical4j.model.property.XProperty;
@@ -90,9 +91,12 @@ final class ICalendarImporter {
                 return new XProperty(name, parameters, value);
             }
         });
+        ParameterFactoryRegistry parameters = new ParameterFactoryRegistry();
+        parameters.register("ACKNOWLEDGED", XParameter::new);
+        parameters.register("FILENAME", XParameter::new);
         net.fortuna.ical4j.model.Calendar calendar = new CalendarBuilder(
                 CalendarParserFactory.getInstance().createParser(),
-                properties, new ParameterFactoryRegistry(),
+                properties, parameters,
                 TimeZoneRegistryFactory.getInstance().createRegistry()).build(input);
         List<EventAction> actions = parse(calendar, now);
         Set<String> importedKeys = existingImportKeys(data);

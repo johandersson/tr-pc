@@ -81,6 +81,8 @@ public class ICalendarImporterTest {
                 DTSTART:20261105T100000Z
                 DTEND:20261105T113000Z
                 SUMMARY:Planning session
+                X-APPLE-TRAVEL-ADVISORY-BEHAVIOR;ACKNOWLEDGED=20261105T094500Z:AUTOMATIC
+                ATTACH;FILENAME=agenda.pdf;FMTTYPE=application/pdf:https://example.test/agenda.pdf
                 BEGIN:VALARM
                 ACTION:DISPLAY
                 TRIGGER:-PT15M
