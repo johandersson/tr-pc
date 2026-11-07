@@ -33,16 +33,23 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import net.fortuna.ical4j.data.CalendarBuilder;
+import net.fortuna.ical4j.data.CalendarParserFactory;
 import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.model.Component;
 import net.fortuna.ical4j.model.ComponentList;
 import net.fortuna.ical4j.model.DateTime;
+import net.fortuna.ical4j.model.ParameterFactoryRegistry;
+import net.fortuna.ical4j.model.ParameterList;
 import net.fortuna.ical4j.model.Period;
 import net.fortuna.ical4j.model.PeriodList;
 import net.fortuna.ical4j.model.Property;
+import net.fortuna.ical4j.model.PropertyFactory;
+import net.fortuna.ical4j.model.PropertyFactoryRegistry;
+import net.fortuna.ical4j.model.TimeZoneRegistryFactory;
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.DateProperty;
 import net.fortuna.ical4j.model.property.Status;
+import net.fortuna.ical4j.model.property.XProperty;
 import tr.model.Data;
 import tr.model.action.Action;
 import tr.model.action.ActionStateScheduled;
@@ -70,7 +77,23 @@ final class ICalendarImporter {
 
     static ImportResult importCalendar(Data data, InputStream input, Date now)
             throws IOException, ParserException {
-        net.fortuna.ical4j.model.Calendar calendar = new CalendarBuilder().build(input);
+        PropertyFactoryRegistry properties = new PropertyFactoryRegistry();
+        // RFC 9074 alarm metadata is not supported by the bundled iCal4j.
+        properties.register("ACKNOWLEDGED", new PropertyFactory() {
+            @Override
+            public Property createProperty(String name) {
+                return new XProperty(name);
+            }
+
+            @Override
+            public Property createProperty(String name, ParameterList parameters, String value) {
+                return new XProperty(name, parameters, value);
+            }
+        });
+        net.fortuna.ical4j.model.Calendar calendar = new CalendarBuilder(
+                CalendarParserFactory.getInstance().createParser(),
+                properties, new ParameterFactoryRegistry(),
+                TimeZoneRegistryFactory.getInstance().createRegistry()).build(input);
         List<EventAction> actions = parse(calendar, now);
         Set<String> importedKeys = existingImportKeys(data);
         int imported = 0;

@@ -68,6 +68,40 @@ public class ICalendarImporterTest {
     }
 
     @Test
+    public void importsEventWithAcknowledgedAlarm() throws Exception {
+        Data data = new Data();
+
+        ICalendarImporter.ImportResult result = importCalendar(data, """
+                BEGIN:VCALENDAR
+                VERSION:2.0
+                PRODID:-//ThinkingRock Test//EN
+                BEGIN:VEVENT
+                UID:acknowledged@example.test
+                DTSTAMP:20261101T120000Z
+                DTSTART:20261105T100000Z
+                DTEND:20261105T113000Z
+                SUMMARY:Planning session
+                BEGIN:VALARM
+                ACTION:DISPLAY
+                TRIGGER:-PT15M
+                DESCRIPTION:Reminder
+                ACKNOWLEDGED:20261105T094500Z
+                END:VALARM
+                END:VEVENT
+                END:VCALENDAR
+                """);
+
+        assertEquals(1, result.imported());
+        assertEquals(0, result.skipped());
+        Action action = actions(data).get(0);
+        assertEquals("Planning session", action.getDescription());
+        ActionStateScheduled state = (ActionStateScheduled) action.getState();
+        assertEquals(Date.from(Instant.parse("2026-11-05T10:00:00Z")), state.getDate());
+        assertEquals(1, state.getDurationHours());
+        assertEquals(30, state.getDurationMinutes());
+    }
+
+    @Test
     public void importsEveryDayOfMultiDayAllDayEvent() throws Exception {
         Data data = new Data();
 
