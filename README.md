@@ -1,10 +1,31 @@
-[![License](https://img.shields.io/github/license/thinkingrock-gtd/tr-pc)](https://github.com/thinkingrock-gtd/tr-pc/blob/master/LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/thinkingrock-gtd/tr-pc/build.yml?branch=main)](https://github.com/thinkingrock-gtd/tr-pc/actions?query=workflow%3AJavaCI+branch%3Amain)
+[![License](https://img.shields.io/github/license/johandersson/tr-pc)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/johandersson/tr-pc/build.yml?branch=main)](https://github.com/johandersson/tr-pc/actions?query=branch%3Amain)
 
-# ThinkingRock for Personal Computer
+# ThinkingRock for Personal Computer (fork)
 
 ThinkingRock is a desktop application for managing tasks and projects using the
 Getting Things Done methodology.
+
+> **This is a fork.** It is a modified version of
+> [ThinkingRock](https://github.com/thinkingrock-gtd/tr-pc), originally
+> developed by Avente Pty Ltd (Australia, <https://trgtd.com.au>) and
+> maintained as open source by the ThinkingRock contributors. This fork is
+> maintained by Johan Andersson and is not affiliated with or endorsed by
+> Avente Pty Ltd or the upstream project.
+
+## What's new in this fork
+
+Main changes in 2026:
+
+- Import calendar events from iCalendar (ICS) files, with the option to skip
+  historical events
+- Archive historical calendar events
+- Self-contained Windows and Linux packages that need no installed Java
+- Runs on Java 27 and NetBeans Platform 31
+- Much faster startup and faster review tabs and calendar
+- Fixes for Review Actions tabs that showed the wrong actions or lost columns
+
+See [CHANGELOG.md](CHANGELOG.md) for all important changes.
 
 ## Build requirements
 
@@ -110,10 +131,33 @@ Downloaded NetBeans, JavaHelp, and Windows JDK archives are checksum-verified an
 `nbproject/platform.properties`. Gradle dependency locks and verification
 metadata are also checked into the repository.
 
+## Authors and copyright
+
+- **Original program:** Copyright (C) 2006 Avente Pty Ltd. Jeremy Moore of
+  Avente Pty Ltd published the source code as open source.
+- **Upstream open-source contributors:** Urs Joss, Radek Čáp, degrown and
+  selfemp, through [thinkingrock-gtd/tr-pc](https://github.com/thinkingrock-gtd/tr-pc).
+  See the Git history for their individual contributions.
+- **Fork modifications:** Copyright (C) 2026 Johan Andersson. The changes are
+  listed in [CHANGELOG.md](CHANGELOG.md). Source files changed in this fork
+  have a `Modifications Copyright (C) 2026 Johan Andersson` line in their
+  headers, and files created in this fork have a
+  `Copyright (C) 2026 Johan Andersson` line. All original copyright notices
+  are kept.
+
+The About dialog (*Help > About*) shows the same attribution.
+
 ## License
 
-ThinkingRock is licensed under the GNU General Public License v3.0 or later.
-See [LICENSE](LICENSE).
+ThinkingRock, including this fork and its modifications, is free software:
+you can redistribute it and/or modify it under the terms of the GNU General
+Public License as published by the Free Software Foundation, either version 3
+of the License, or (at your option) any later version. See [LICENSE](LICENSE).
+
+This program is distributed in the hope that it will be useful, but **WITHOUT
+ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+details.
 
 The JavaHelp runtime is distributed under GPL v2 with the Classpath Exception.
 Its license is included as `META-INF/LICENSE.javahelp` in the packaged NetBeans

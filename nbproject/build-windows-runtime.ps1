@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Johan Andersson
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 param(
     [Parameter(Mandatory = $true)]
     [string] $JdkDir,

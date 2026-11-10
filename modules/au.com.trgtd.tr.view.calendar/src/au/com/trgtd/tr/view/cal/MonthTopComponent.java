@@ -1,6 +1,7 @@
 /*
  * ThinkingRock, a project management tool for Personal Computers.
  * Copyright (C) 2006 Avente Pty Ltd
+ * Modifications Copyright (C) 2026 Johan Andersson
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

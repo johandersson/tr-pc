@@ -1,4 +1,6 @@
 @echo off
+rem Copyright (C) 2026 Johan Andersson
+rem SPDX-License-Identifier: GPL-3.0-or-later
 setlocal
 
 set "TR_JAVA_HOME=%~dp0..\runtime"
