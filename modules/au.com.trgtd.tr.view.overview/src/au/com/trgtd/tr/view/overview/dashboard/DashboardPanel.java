@@ -26,11 +26,16 @@ import au.com.trgtd.tr.view.process.ProcessThoughtsAction;
 import au.com.trgtd.tr.view.projects.ProjectsAction;
 import au.com.trgtd.tr.view.projects.ProjectsTreeTopComponent;
 import au.com.trgtd.tr.view.projects.actions.SingleActionsTopComponent;
+import au.com.trgtd.tr.view.someday.FuturesAction;
+import au.com.trgtd.tr.view.someday.screen.SomedaysTopComponent;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.Desktop;
+import java.io.IOException;
+import java.net.URI;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.DateFormat;
@@ -40,6 +45,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -47,12 +55,15 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.UIManager;
 import org.openide.util.NbBundle;
+import org.openide.DialogDisplayer;
+import org.openide.NotifyDescriptor;
 import org.openide.util.actions.CallableSystemAction;
 import org.openide.util.actions.SystemAction;
 import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.action.Action;
 import tr.model.action.ActionStateScheduled;
+import tr.model.future.Future;
 import tr.model.project.Project;
 
 /**
@@ -68,8 +79,23 @@ public final class DashboardPanel extends JPanel {
     private final DateFormat timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT);
     private final DateFormat dayFormat = new SimpleDateFormat("EEE d MMM");
     private final DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM);
+    private final Runnable nextActionsNavigation;
+    private final Consumer<URI> callLauncher;
+    private final Consumer<Future> somedayNavigation;
 
     public DashboardPanel() {
+        this(DashboardPanel::openDoAsap, DashboardPanel::openCall);
+    }
+
+    DashboardPanel(Runnable nextActionsNavigation, Consumer<URI> callLauncher) {
+        this(nextActionsNavigation, callLauncher, DashboardPanel::openSomeday);
+    }
+
+    DashboardPanel(Runnable nextActionsNavigation, Consumer<URI> callLauncher,
+            Consumer<Future> somedayNavigation) {
+        this.nextActionsNavigation = nextActionsNavigation;
+        this.callLauncher = callLauncher;
+        this.somedayNavigation = somedayNavigation;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
     }
@@ -113,11 +139,18 @@ public final class DashboardPanel extends JPanel {
                 a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), this::openAction,
                 msg("dashboard.upcoming.none"));
         nextActions(model);
+        calls(model);
         section("due", msg("dashboard.due"), model.due,
                 a -> "<b>" + dateFormat.format(a.getDueDate()) + "</b> " + escape(a.getDescription()) + projectSuffix(a),
                 this::openAction, null);
         section("followups", msg("dashboard.followups"), model.followUps,
                 a -> escape(a.getDescription()) + projectSuffix(a), this::openAction, null);
+        section("waiting", msg("dashboard.waiting"), model.waitingFor,
+                a -> escape(a.getDescription()) + projectSuffix(a), this::openAction,
+                msg("dashboard.waiting.none"));
+        section("someday", msg("dashboard.someday"), model.somedayMaybe,
+                f -> escape(f.getDescription()), somedayNavigation, msg("dashboard.someday.none"));
+        add(link(msg("dashboard.someday.all"), () -> perform(FuturesAction.class)));
         section("stalled", msg("dashboard.stalled"), model.stalledProjects,
                 p -> indent(p) + escape(p.project().getDescription()), p -> openProject(p.project()),
                 msg("dashboard.stalled.none"));
@@ -125,6 +158,37 @@ public final class DashboardPanel extends JPanel {
                 p -> indent(p) + escape(p.project().getDescription()) + " <font color='gray'>("
                         + msg("dashboard.actions", p.activeActions()) + ")</font>",
                 p -> openProject(p.project()), msg("dashboard.projects.none"));
+    }
+
+    private void calls(DashboardModel model) {
+        sectionHeader(msg("dashboard.calls"), model.callsCount);
+        if (model.calls.isEmpty()) {
+            add(text("<html><i>" + escape(msg("dashboard.calls.none")) + "</i></html>"));
+            return;
+        }
+        for (Action action : model.calls) {
+            String due = action.getDueDate() == null ? "" : "<b>" + dateFormat.format(action.getDueDate()) + "</b> ";
+            add(link("<html>" + due + escape(action.getDescription()) + projectSuffix(action) + "</html>",
+                    () -> openAction(action)));
+            for (PhoneLinks.Phone phone : PhoneLinks.find(action.getDescription(), action.getNotes())) {
+                add(link("<html>&nbsp;&nbsp;" + escape(phone.label()) + "</html>",
+                        () -> callLauncher.accept(phone.uri())));
+            }
+        }
+        add(link(msg("dashboard.calls.all", model.callsCount), () -> perform(ProjectsAction.class)));
+    }
+
+    private static void openCall(URI uri) {
+        try {
+            if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                throw new UnsupportedOperationException("Desktop URI handling is unavailable");
+            }
+            Desktop.getDesktop().browse(uri);
+        } catch (IOException | UnsupportedOperationException | SecurityException ex) {
+            Logger.getLogger(DashboardPanel.class.getName()).log(Level.WARNING, "Could not open call link", ex);
+            DialogDisplayer.getDefault().notify(new NotifyDescriptor.Message(
+                    msg("dashboard.calls.error"), NotifyDescriptor.ERROR_MESSAGE));
+        }
     }
 
     private void nextActions(DashboardModel model) {
@@ -137,9 +201,9 @@ public final class DashboardPanel extends JPanel {
             String due = action.getDueDate() == null ? "" : "<b>" + dateFormat.format(action.getDueDate()) + "</b> ";
             add(link("<html><b>" + escape(action.getContext().getName()) + "</b> - "
                     + due + escape(action.getDescription()) + projectSuffix(action) + "</html>",
-                    () -> openAction(action)));
+                    nextActionsNavigation));
         }
-        add(link(msg("dashboard.next.all", model.doAsapCount), DashboardPanel::openDoAsap));
+        add(link(msg("dashboard.next.all", model.doAsapCount), nextActionsNavigation));
     }
 
     private static void openDoAsap() {
@@ -234,6 +298,11 @@ public final class DashboardPanel extends JPanel {
                 }
             }
         });
+    }
+
+    private static void openSomeday(Future future) {
+        perform(FuturesAction.class);
+        EventQueue.invokeLater(() -> SomedaysTopComponent.findInstance().select(future));
     }
 
     private static void perform(Class<? extends CallableSystemAction> type) {

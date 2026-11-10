@@ -30,6 +30,7 @@ import tr.model.action.Action;
 import tr.model.action.ActionState;
 import tr.model.action.ActionStateDelegated;
 import tr.model.action.ActionStateScheduled;
+import tr.model.future.Future;
 import tr.model.project.Project;
 import tr.model.thought.Thought;
 
@@ -43,6 +44,9 @@ public final class DashboardModel {
     private static final Comparator<Action> NEXT_ACTION_ORDER = Comparator
             .comparing((Action action) -> action.getContext().getName(), String.CASE_INSENSITIVE_ORDER)
             .thenComparing(Action::getDueDate, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(Action::getDescription, String.CASE_INSENSITIVE_ORDER);
+    private static final Comparator<Action> DUE_ORDER = Comparator
+            .comparing(Action::getDueDate, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(Action::getDescription, String.CASE_INSENSITIVE_ORDER);
 
     /** A project, its depth in the projects tree and its active action count. */
@@ -58,12 +62,19 @@ public final class DashboardModel {
     public final List<Action> followUps = new ArrayList<>();
     /** Up to ten available Do ASAP actions, sorted by context then due date (undated last). */
     public final List<Action> nextActions = new ArrayList<>();
+    /** Up to ten active Calls actions, earliest due date first. */
+    public final List<Action> calls = new ArrayList<>();
+    /** Available delegated actions or actions in the Waiting For context. */
+    public final List<Action> waitingFor = new ArrayList<>();
+    /** Someday/Maybe records, independent of action contexts. */
+    public final List<Future> somedayMaybe = new ArrayList<>();
     /** Not done projects with at least one active action, in tree order. */
     public final List<ProjectInfo> activeProjects = new ArrayList<>();
     /** Started, not done projects without any active action, in tree order. */
     public final List<ProjectInfo> stalledProjects = new ArrayList<>();
     public int inboxCount;
     public int doAsapCount;
+    public int callsCount;
 
     private final long startToday;
     private final long startTomorrow;
@@ -102,6 +113,9 @@ public final class DashboardModel {
         }
         model.visit(data.getRootProjects(), -1);
         model.visit(data.getRootActions(), -1);
+        model.somedayMaybe.addAll(data.getFutureManager().list());
+        model.somedayMaybe.sort(Comparator.comparing(Future::getDescription, String.CASE_INSENSITIVE_ORDER));
+        model.waitingFor.sort(DUE_ORDER);
 
         Comparator<Action> byScheduled = Comparator.comparing(DashboardModel::scheduledDate);
         model.today.sort(byScheduled);
@@ -142,6 +156,17 @@ public final class DashboardModel {
             return false;
         }
         ActionState state = action.getState();
+        Date start = action.getStartDate();
+        if (action.isActive() && (state instanceof ActionStateDelegated
+                || action.getContext().hasName("Waiting For"))
+                && (start == null || start.getTime() < startTomorrow)) {
+            waitingFor.add(action);
+        }
+        if (action.isActive() && action.getContext().hasName("Calls")
+                && (start == null || start.getTime() < startTomorrow)) {
+            callsCount++;
+            addLimited(calls, action, DUE_ORDER);
+        }
         if (state instanceof ActionStateScheduled scheduled) {
             Date date = scheduled.getDate();
             if (date != null) {
@@ -159,19 +184,9 @@ public final class DashboardModel {
                     followUps.add(action);
                 }
             } else if (action.isStateASAP()) {
-                Date start = action.getStartDate();
                 if (start == null || start.getTime() < startTomorrow) {
                     doAsapCount++;
-                    int index = Collections.binarySearch(nextActions, action, NEXT_ACTION_ORDER);
-                    if (index < 0) {
-                        index = -index - 1;
-                    }
-                    if (index < NEXT_ACTIONS_LIMIT) {
-                        nextActions.add(index, action);
-                        if (nextActions.size() > NEXT_ACTIONS_LIMIT) {
-                            nextActions.remove(NEXT_ACTIONS_LIMIT);
-                        }
-                    }
+                    addLimited(nextActions, action, NEXT_ACTION_ORDER);
                 }
             }
             Date dueDate = action.getDueDate();
@@ -180,6 +195,19 @@ public final class DashboardModel {
             }
         }
         return action.isActive();
+    }
+
+    private static void addLimited(List<Action> list, Action action, Comparator<Action> order) {
+        int index = Collections.binarySearch(list, action, order);
+        if (index < 0) {
+            index = -index - 1;
+        }
+        if (index < NEXT_ACTIONS_LIMIT) {
+            list.add(index, action);
+            if (list.size() > NEXT_ACTIONS_LIMIT) {
+                list.remove(NEXT_ACTIONS_LIMIT);
+            }
+        }
     }
 
     private boolean isNotStarted(Project project) {

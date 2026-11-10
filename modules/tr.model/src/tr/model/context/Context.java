@@ -85,6 +85,14 @@ public class Context extends ObservableImpl implements Comparable<Context> {
         } 
         return name;
     }
+
+    public boolean hasName(String expected) {
+        String actual = getName().strip();
+        if (actual.startsWith("@")) {
+            actual = actual.substring(1).strip();
+        }
+        return actual.equalsIgnoreCase(expected);
+    }
     
     /**
      * Sets the name.

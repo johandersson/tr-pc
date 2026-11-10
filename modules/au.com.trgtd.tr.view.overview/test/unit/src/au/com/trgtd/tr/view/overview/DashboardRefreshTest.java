@@ -38,6 +38,7 @@ import org.openide.util.NbBundle;
 import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.action.Action;
+import tr.model.future.Future;
 import tr.model.thought.Thought;
 
 public class DashboardRefreshTest {
@@ -196,6 +197,39 @@ public class DashboardRefreshTest {
         rendered = new CountDownLatch(1);
         SwingUtilities.invokeAndWait(() -> DataLookup.instance().setData(null));
         awaitRender();
+    }
+
+    @Test
+    public void somedayChangesRefreshAndSwitchingFilesDetachesOldRecords() throws Exception {
+        Future future = new Future(data.getNextID());
+        rendered = new CountDownLatch(1);
+        data.getFutureManager().add(future);
+        awaitRender();
+        rendered = new CountDownLatch(1);
+        future.setDescription("New Someday item");
+        awaitRender();
+        SwingUtilities.invokeAndWait(() -> assertTrue(hasLabelContaining("New Someday item")));
+
+        Data replacement = new Data();
+        rendered = new CountDownLatch(1);
+        SwingUtilities.invokeAndWait(() -> DataLookup.instance().setData(replacement));
+        awaitRender();
+        int before = renders.get();
+        future.setDescription("Old file must not refresh");
+        waitForPendingRefresh();
+        assertEquals(before, renders.get());
+        rendered = new CountDownLatch(1);
+        replacement.getFutureManager().add(new Future(replacement.getNextID()));
+        awaitRender();
+    }
+
+    private boolean hasLabelContaining(String text) {
+        for (Component component : dashboard.getComponents()) {
+            if (component instanceof JLabel label && label.getText().contains(text)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void awaitRender() throws InterruptedException {

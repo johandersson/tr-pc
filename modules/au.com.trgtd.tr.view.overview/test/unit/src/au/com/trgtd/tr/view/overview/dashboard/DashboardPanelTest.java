@@ -18,6 +18,8 @@
 package au.com.trgtd.tr.view.overview.dashboard;
 
 import java.awt.Component;
+import java.awt.event.MouseEvent;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JLabel;
@@ -27,9 +29,178 @@ import org.openide.util.NbBundle;
 import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.action.Action;
+import tr.model.action.ActionStateDelegated;
+import tr.model.future.Future;
 import static org.junit.Assert.*;
 
 public class DashboardPanelTest {
+
+    @Test
+    public void waitingAndSomedaySectionsShowEmptyMessages() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                DataLookup.instance().setData(new Data());
+                DashboardPanel panel = new DashboardPanel();
+                panel.refresh();
+                for (String key : List.of("dashboard.waiting", "dashboard.waiting.none",
+                        "dashboard.someday", "dashboard.someday.none")) {
+                    String text = NbBundle.getMessage(DashboardPanel.class, key);
+                    assertTrue(key, List.of(panel.getComponents()).stream()
+                            .anyMatch(c -> c instanceof JLabel label && label.getText().contains(text)));
+                }
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    @Test
+    public void waitingAndSomedayRowsAreEscapedAndSomedayRowsSelectTheRecord() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                Action waiting = new Action(data);
+                waiting.setDescription("Waiting <&>");
+                waiting.setState(new ActionStateDelegated());
+                data.getRootActions().add(waiting);
+                Future future = new Future(data.getNextID());
+                future.setDescription("Someday <&>");
+                data.getFutureManager().add(future);
+                DataLookup.instance().setData(data);
+                List<Future> selected = new ArrayList<>();
+                DashboardPanel panel = new DashboardPanel(() -> {}, uri -> {}, selected::add);
+                panel.refresh();
+                int rows = 0;
+                for (Component component : panel.getComponents()) {
+                    if (component instanceof JLabel label && (label.getText().contains("Waiting &lt;&amp;&gt;")
+                            || label.getText().contains("Someday &lt;&amp;&gt;"))) {
+                        rows++;
+                        assertTrue(label.getMouseListeners().length > 0);
+                        if (label.getText().contains("Someday")) {
+                            click(label);
+                        }
+                    }
+                }
+                assertEquals(2, rows);
+                assertEquals(List.of(future), selected);
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    @Test
+    public void somedayListCanExpandBeyondCollapsedRows() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                for (int i = 0; i < 12; i++) {
+                    Future future = new Future(data.getNextID());
+                    future.setDescription("Someday-row-" + i);
+                    data.getFutureManager().add(future);
+                }
+                DataLookup.instance().setData(data);
+                DashboardPanel panel = new DashboardPanel();
+                panel.refresh();
+                assertEquals(8, countSomedayRows(panel));
+                for (Component component : panel.getComponents()) {
+                    if (component instanceof JLabel label && label.getText().contains(
+                            NbBundle.getMessage(DashboardPanel.class, "dashboard.show.all", 12))) {
+                        click(label);
+                        break;
+                    }
+                }
+                assertEquals(12, countSomedayRows(panel));
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    private static long countSomedayRows(DashboardPanel panel) {
+        return List.of(panel.getComponents()).stream()
+                .filter(c -> c instanceof JLabel label && label.getText().contains("Someday-row-")).count();
+    }
+
+    @Test
+    public void callsSectionIncludesSeparateClickableNumbersFromTitleAndNotes() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                Action action = new Action(data);
+                action.setContext(data.getContextManager().list().stream()
+                        .filter(context -> context.hasName("Calls")).findFirst().orElseThrow());
+                action.setDescription("Call <supplier> +46 70 123 45 67");
+                action.setNotes("Backup: 020-7946-0958");
+                data.getRootActions().add(action);
+                DataLookup.instance().setData(data);
+                List<URI> dialed = new ArrayList<>();
+                DashboardPanel panel = new DashboardPanel(() -> {}, dialed::add);
+                panel.refresh();
+                boolean inCalls = false;
+                int phoneLinks = 0;
+                boolean actionLink = false;
+                for (Component component : panel.getComponents()) {
+                    if (component instanceof JLabel label) {
+                        if (label.getText().equals(NbBundle.getMessage(DashboardPanel.class, "dashboard.calls") + " (1)")) {
+                            inCalls = true;
+                        } else if (inCalls && label.getText().contains("&nbsp;&nbsp;")) {
+                            phoneLinks++;
+                            assertTrue(label.getMouseListeners().length > 0);
+                            click(label);
+                        } else if (inCalls && label.getText().contains("&lt;supplier&gt;")) {
+                            actionLink = true;
+                        }
+                    }
+                }
+                assertTrue(actionLink);
+                assertEquals(2, phoneLinks);
+                assertEquals(List.of(URI.create("tel:+46701234567"), URI.create("tel:02079460958")), dialed);
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    @Test
+    public void nextActionRowsAndFooterUseTheSameDoAsapNavigation() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                Action action = new Action(data);
+                action.setDescription("Navigate to Do ASAP");
+                data.getRootActions().add(action);
+                DataLookup.instance().setData(data);
+                int[] navigations = {0};
+                DashboardPanel panel = new DashboardPanel(() -> navigations[0]++, uri -> fail("Not a call"));
+                panel.refresh();
+                for (Component component : panel.getComponents()) {
+                    if (component instanceof JLabel label
+                            && (label.getText().contains("Navigate to Do ASAP")
+                            || label.getText().equals(NbBundle.getMessage(
+                                    DashboardPanel.class, "dashboard.next.all", 1)))) {
+                        click(label);
+                    }
+                }
+                assertEquals("Individual rows and footer must both open Actions / Do ASAP", 2, navigations[0]);
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    private static void click(JLabel label) {
+        MouseEvent click = new MouseEvent(label, MouseEvent.MOUSE_CLICKED,
+                System.currentTimeMillis(), 0, 1, 1, 1, false);
+        for (var listener : label.getMouseListeners()) {
+            listener.mouseClicked(click);
+        }
+    }
 
     @Test
     public void nextActionRowsStayCappedAndLinkToFullScreenAtEveryBoundary() throws Exception {

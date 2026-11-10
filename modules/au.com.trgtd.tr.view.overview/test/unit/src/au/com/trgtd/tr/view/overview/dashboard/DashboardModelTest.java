@@ -30,6 +30,7 @@ import tr.model.action.ActionStateInactive;
 import tr.model.action.ActionStateScheduled;
 import tr.model.project.Project;
 import tr.model.context.Context;
+import tr.model.future.Future;
 import tr.model.thought.Thought;
 
 public class DashboardModelTest {
@@ -41,6 +42,8 @@ public class DashboardModelTest {
         DashboardModel model = DashboardModel.build(null, date(NOW), 2);
         assertTrue(model.today.isEmpty());
         assertTrue(model.activeProjects.isEmpty());
+        assertTrue(model.waitingFor.isEmpty());
+        assertTrue(model.somedayMaybe.isEmpty());
         assertEquals(0, model.inboxCount);
     }
 
@@ -199,6 +202,91 @@ public class DashboardModelTest {
         action.setDueDate(due == null ? null : date(due));
         data.getRootActions().add(action);
         return action;
+    }
+
+    @Test
+    public void callsIncludesActiveCallsAcrossStatesAndIsCappedAndSortedByDueDate() {
+        Data data = new Data();
+        Context calls = data.getContextManager().list().stream()
+                .filter(context -> context.hasName("Calls")).findFirst().orElseThrow();
+        Action undated = nextAction(data, calls, "Undated", null);
+        Action done = nextAction(data, calls, "Done", NOW.minusDays(3));
+        done.setDone(true);
+        Action inactive = nextAction(data, calls, "Inactive", NOW.minusDays(3));
+        inactive.setState(new ActionStateInactive());
+        Action future = nextAction(data, calls, "Future", NOW.minusDays(3));
+        future.setStartDate(date(NOW.plusDays(2)));
+        Action scheduled = scheduled(data, NOW);
+        scheduled.setContext(calls);
+        data.getRootActions().add(scheduled);
+        for (int i = 999; i >= 0; i--) {
+            nextAction(data, calls, "Call " + i, NOW.plusDays(i));
+        }
+
+        DashboardModel model = DashboardModel.build(data, date(NOW), 2);
+        assertEquals(1002, model.callsCount);
+        assertEquals(10, model.calls.size());
+        for (int i = 0; i < 10; i++) {
+            assertEquals("Call " + i, model.calls.get(i).getDescription());
+        }
+        assertFalse(model.calls.contains(undated));
+    }
+
+    @Test
+    public void callsRecognizesExistingContextNamesWithAtPrefixAndDifferentCase() {
+        Data data = new Data();
+        Context context = new Context(data.getNextID());
+        context.setName(" @cALLs ");
+        Action action = nextAction(data, context, "Phone supplier", null);
+
+        assertEquals(List.of(action), DashboardModel.build(data, date(NOW), 2).calls);
+    }
+
+    @Test
+    public void waitingIncludesContextAndDelegatedActionsWithoutRequiringFollowUpDates() {
+        Data data = new Data();
+        Context waiting = new Context(data.getNextID());
+        waiting.setName(" @waiting FOR ");
+        Action contextual = nextAction(data, waiting, "Context waiting", NOW.plusDays(2));
+        Action delegated = new Action(data);
+        delegated.setDescription("Delegated without follow-up date");
+        delegated.setState(new ActionStateDelegated());
+        Project project = project(data, "Waiting project");
+        project.add(delegated);
+        data.getRootProjects().add(project);
+        Action both = nextAction(data, waiting, "Both", NOW.minusDays(1));
+        ActionStateDelegated state = new ActionStateDelegated();
+        state.setDate(date(NOW.plusDays(5)));
+        both.setState(state);
+        Action done = nextAction(data, waiting, "Done", null);
+        done.setDone(true);
+        Action inactive = nextAction(data, waiting, "Inactive", null);
+        inactive.setState(new ActionStateInactive());
+        Action future = nextAction(data, waiting, "Future", null);
+        future.setStartDate(date(NOW.plusDays(1)));
+        data.getRootActions().add(new Action(data));
+
+        DashboardModel model = DashboardModel.build(data, date(NOW), 2);
+
+        assertEquals(List.of(both, contextual, delegated), model.waitingFor);
+        assertTrue("Waiting is not limited to follow-ups due today", model.followUps.isEmpty());
+    }
+
+    @Test
+    public void somedayMaybeUsesDedicatedRecordsNotActionContextsOrTickleDates() {
+        Data data = new Data();
+        Future zebra = new Future(data.getNextID());
+        zebra.setDescription("Zebra");
+        Future alpha = new Future(data.getNextID());
+        alpha.setDescription("Alpha");
+        alpha.setTickle(date(NOW.plusDays(100)));
+        data.getFutureManager().add(zebra);
+        data.getFutureManager().add(alpha);
+        Context someday = new Context(data.getNextID());
+        someday.setName("Someday/Maybe");
+        nextAction(data, someday, "Not a Someday/Maybe record", null);
+
+        assertEquals(List.of(alpha, zebra), DashboardModel.build(data, date(NOW), 2).somedayMaybe);
     }
 
     @Test

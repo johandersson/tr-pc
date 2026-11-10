@@ -50,6 +50,7 @@ public class DataLookup extends ProxyLookup {
         if (data == null) {
             setLookups(new Lookup[] {});                        
         } else {
+            data.ensureDefaultContexts();
             setLookups(new Lookup[] {Lookups.singleton(data)});            
         }
     }

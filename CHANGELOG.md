@@ -14,6 +14,17 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### New features
 
+- **Dashboard Waiting For and Someday/Maybe sections.** Waiting For includes
+  available Waiting For context actions and delegated actions, even without
+  a follow-up date. Someday/Maybe reads its existing records directly and
+  links to that screen without relying on contexts.
+- **Starter GTD contexts.** New and existing data files receive missing Calls,
+  Computer, Office, Home, Errands, Online, Anywhere, Agendas, Read/Review and
+  Waiting For contexts. Existing names (including case and @ prefix variants)
+  are preserved.
+- **Dashboard Calls section.** Shows up to 10 active Calls actions, due dates
+  first, with clickable phone numbers found in titles or notes. Numbers use
+  standard `tel:` links and the operating system's configured calling app.
 - **Calendar import (iCalendar / ICS).** *File > Import* converts ICS
   calendar events into scheduled actions. It supports time zones, durations,
   recurring events, cancellations, multi-day events and duplicate detection.
@@ -60,6 +71,8 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Bug fixes
 
+- Individual Next actions dashboard entries now open Actions / Do ASAP,
+  matching the full-list link, instead of opening Projects.
 - The dashboard's Do ASAP link now selects the Do ASAP tab instead of the
   first Review Actions tab.
 - Normalized the Ctrl+Shift+N shortcut registration and added coverage for

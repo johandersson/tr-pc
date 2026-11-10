@@ -79,11 +79,13 @@ final class DashboardRefresh {
         if (observedData != null) {
             observedData.getRootAll().removeObserver(observer);
             observedData.getThoughtManager().removeObserver(observer);
+            observedData.getFutureManager().removeObserver(observer);
         }
         observedData = data;
         if (observedData != null) {
             observedData.getRootAll().addObserver(observer);
             observedData.getThoughtManager().addObserver(observer);
+            observedData.getFutureManager().addObserver(observer);
         }
     }
 

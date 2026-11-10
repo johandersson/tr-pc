@@ -105,7 +105,25 @@ public class Data extends ObservableImpl implements IDGenerator, Observer {
         rootTemplates = new ProjectTemplates();
         rootFutures = new ProjectFutures();
         actors = new Manager<>();
+        ensureDefaultContexts();
         resetObservers();
+    }
+
+    /** Adds missing starter contexts without replacing the user's existing contexts. */
+    public final void ensureDefaultContexts() {
+        boolean added = false;
+        for (String name : new String[]{"Calls", "Computer", "Office", "Home", "Errands",
+                "Online", "Anywhere", "Agendas", "Read/Review", "Waiting For"}) {
+            if (contexts.list().stream().noneMatch(context -> context.hasName(name))) {
+                Context context = new Context(getNextID());
+                context.setName(name);
+                contexts.add(context);
+                added = true;
+            }
+        }
+        if (added) {
+            setChanged(true);
+        }
     }
 
     /**

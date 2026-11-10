@@ -17,9 +17,55 @@
  */
 package au.com.trgtd.tr.datastore.xstream;
 
+import au.com.trgtd.tr.datastore.DataStore;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.StaxDriver;
 import org.junit.Test;
+import tr.model.Data;
+import tr.model.action.Action;
+import tr.model.context.Context;
+import static org.junit.Assert.*;
 
 public class XStreamDataStoreTest {
+
+    @Test
+    public void serializedExistingDataGetsMissingContextsAndTheySurviveRoundTrip() {
+        DataStore store = XStreamDataStore.instance();
+        Data original = store.getData();
+        try {
+            XStream serializer = new XStream(new StaxDriver());
+            serializer.allowTypesByWildcard(new String[]{"tr.model.**"});
+            Data legacy = new Data();
+            for (Context context : legacy.getContextManager().list()) {
+                if (context != Context.getDefault()) {
+                    legacy.getContextManager().remove(context);
+                }
+            }
+            Context calls = new Context(legacy.getNextID());
+            calls.setName("@cALLs");
+            calls.setDescription("Preserve my context");
+            legacy.getContextManager().add(calls);
+            Action call = new Action(legacy);
+            call.setContext(calls);
+            call.setDescription("Call supplier +46 70 123 45 67");
+            legacy.getRootActions().add(call);
+            store.setData((Data) serializer.fromXML(serializer.toXML(legacy)));
+            Data migrated = store.getData();
+            assertEquals(11, migrated.getContextManager().size());
+            assertTrue(migrated.hasChanged());
+            Context preserved = migrated.getContextManager().list().stream()
+                    .filter(context -> context.hasName("Calls")).findFirst().orElseThrow();
+            assertEquals("@cALLs", preserved.getName());
+            assertEquals("Preserve my context", preserved.getDescription());
+            assertSame(preserved, migrated.getRootActions().getChildren(Action.class).getFirst().getContext());
+
+            store.setData((Data) serializer.fromXML(serializer.toXML(migrated)));
+            assertEquals(11, store.getData().getContextManager().size());
+            assertFalse("Persisted defaults must not be added again", store.getData().hasChanged());
+        } finally {
+            store.setData(original);
+        }
+    }
 
     @Test
     public void loadWithBlankPathDoesNotTryToReadCurrentDirectory() throws Exception {
