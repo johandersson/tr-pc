@@ -70,8 +70,23 @@ public final class ImportICalendarAction extends CallableSystemAction {
         }
 
         File file = chooser.getSelectedFile();
+        Object[] options = {
+            message("ImportICalendar.history.import"),
+            message("ImportICalendar.history.skip"),
+            message("ImportICalendar.history.cancel")
+        };
+        int historyChoice = JOptionPane.showOptionDialog(
+                WindowManager.getDefault().getMainWindow(),
+                message("ImportICalendar.history.message"),
+                message("ImportICalendar.result.title"),
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null, options, options[0]);
+        if (historyChoice != 0 && historyChoice != 1) {
+            return;
+        }
         try {
-            ImportResult result = ICalendarImporter.importFile(data, file);
+            ImportResult result = ICalendarImporter.importFile(data, file, historyChoice == 0);
             File parent = file.getParentFile();
             if (parent != null) {
                 Options.setImportPath(parent.getAbsolutePath());

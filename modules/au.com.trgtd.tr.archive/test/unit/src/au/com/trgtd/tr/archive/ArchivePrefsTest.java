@@ -37,4 +37,17 @@ public class ArchivePrefsTest {
         assertEquals(value, ArchivePrefs.isDoneProjectsOnly());
     }
 
+    @Test
+    public void historicalEventsPreferenceRoundTrips() {
+        boolean original = ArchivePrefs.isHistoricalEvents();
+        try {
+            ArchivePrefs.setHistoricalEvents(true);
+            assertTrue(ArchivePrefs.isHistoricalEvents());
+            ArchivePrefs.setHistoricalEvents(false);
+            assertFalse(ArchivePrefs.isHistoricalEvents());
+        } finally {
+            ArchivePrefs.setHistoricalEvents(original);
+        }
+    }
+
 }

@@ -264,6 +264,91 @@ public class ICalendarImporterTest {
         assertEquals(2, actions(data).size());
     }
 
+    @Test
+    public void skipsHistoryButKeepsTodayAndCanImportHistoryLater() throws Exception {
+        Data data = new Data();
+        String ics = """
+                BEGIN:VCALENDAR
+                VERSION:2.0
+                PRODID:-//ThinkingRock Test//EN
+                BEGIN:VEVENT
+                UID:historical-timed@example.test
+                DTSTAMP:20261101T120000Z
+                DTSTART:20261104T230000
+                SUMMARY:Yesterday
+                END:VEVENT
+                BEGIN:VEVENT
+                UID:today@example.test
+                DTSTAMP:20261101T120000Z
+                DTSTART:20261105T000000
+                SUMMARY:Today at midnight
+                END:VEVENT
+                BEGIN:VEVENT
+                UID:history-recurring@example.test
+                DTSTAMP:20261101T120000Z
+                DTSTART:20261104T090000
+                DTEND:20261104T093000
+                RRULE:FREQ=DAILY;COUNT=3
+                SUMMARY:Daily review
+                END:VEVENT
+                BEGIN:VEVENT
+                UID:history-all-day@example.test
+                DTSTAMP:20261101T120000Z
+                DTSTART;VALUE=DATE:20261104
+                DTEND;VALUE=DATE:20261107
+                SUMMARY:Conference
+                END:VEVENT
+                END:VCALENDAR
+                """;
+        Date now = Date.from(LocalDate.of(2026, 11, 5).atTime(12, 0)
+                .atZone(ZoneId.systemDefault()).toInstant());
+
+        ICalendarImporter.ImportResult result = ICalendarImporter.importCalendar(
+                data, new ByteArrayInputStream(ics.getBytes(StandardCharsets.UTF_8)), now, false);
+
+        assertEquals(5, result.imported());
+        assertEquals(3, result.skipped());
+        assertEquals(0, result.duplicates());
+        assertTrue(actions(data).stream().allMatch(
+                action -> !localDate(action).isBefore(LocalDate.of(2026, 11, 5))));
+        assertTrue(actions(data).stream().anyMatch(
+                action -> action.getDescription().equals("Today at midnight")));
+
+        ICalendarImporter.ImportResult withHistory = ICalendarImporter.importCalendar(
+                data, new ByteArrayInputStream(ics.getBytes(StandardCharsets.UTF_8)), now, true);
+
+        assertEquals(3, withHistory.imported());
+        assertEquals(5, withHistory.duplicates());
+        assertEquals(0, withHistory.skipped());
+        assertEquals(8, actions(data).size());
+    }
+
+    @Test
+    public void skippingOnlyHistoricalEventsDoesNotChangeData() throws Exception {
+        Data data = new Data();
+        boolean changedBefore = data.hasChanged();
+        String ics = """
+                BEGIN:VCALENDAR
+                VERSION:2.0
+                PRODID:-//ThinkingRock Test//EN
+                BEGIN:VEVENT
+                UID:old@example.test
+                DTSTAMP:20200101T120000Z
+                DTSTART;VALUE=DATE:20200101
+                SUMMARY:Old event
+                END:VEVENT
+                END:VCALENDAR
+                """;
+        ICalendarImporter.ImportResult result = ICalendarImporter.importCalendar(
+                data, new ByteArrayInputStream(ics.getBytes(StandardCharsets.UTF_8)),
+                Date.from(Instant.parse("2026-11-05T12:00:00Z")), false);
+
+        assertEquals(0, result.imported());
+        assertEquals(1, result.skipped());
+        assertTrue(actions(data).isEmpty());
+        assertEquals(changedBefore, data.hasChanged());
+    }
+
     private static ICalendarImporter.ImportResult importCalendar(Data data, String ics)
             throws Exception {
         return ICalendarImporter.importCalendar(

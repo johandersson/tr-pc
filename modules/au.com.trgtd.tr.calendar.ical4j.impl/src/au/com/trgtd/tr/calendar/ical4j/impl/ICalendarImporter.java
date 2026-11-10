@@ -67,17 +67,23 @@ final class ICalendarImporter {
     private ICalendarImporter() {
     }
 
-    static ImportResult importFile(Data data, File file) throws IOException, ParserException {
+    static ImportResult importFile(Data data, File file, boolean importHistoricalEvents)
+            throws IOException, ParserException {
         if (file == null || !file.isFile() || !file.canRead()) {
             throw new IOException("The selected file cannot be read.");
         }
         try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
-            return importCalendar(data, input, new Date());
+            return importCalendar(data, input, new Date(), importHistoricalEvents);
         }
     }
 
     static ImportResult importCalendar(Data data, InputStream input, Date now)
             throws IOException, ParserException {
+        return importCalendar(data, input, now, true);
+    }
+
+    static ImportResult importCalendar(Data data, InputStream input, Date now,
+            boolean importHistoricalEvents) throws IOException, ParserException {
         PropertyFactoryRegistry properties = new PropertyFactoryRegistry();
         // RFC 9074 alarm metadata is not supported by the bundled iCal4j.
         properties.register("ACKNOWLEDGED", new PropertyFactory() {
@@ -103,9 +109,13 @@ final class ICalendarImporter {
         int imported = 0;
         int duplicates = 0;
         int skipped = 0;
+        Calendar today = Calendar.getInstance();
+        today.setTime(now);
+        clearTime(today);
 
         for (EventAction eventAction : actions) {
-            if (eventAction.skipped()) {
+            if (eventAction.skipped()
+                    || (!importHistoricalEvents && eventAction.start().before(today.getTime()))) {
                 skipped++;
             } else if (!importedKeys.add(eventAction.key())) {
                 duplicates++;

@@ -50,6 +50,7 @@ import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.Item.Item;
 import tr.model.action.Action;
+import tr.model.action.ActionStateScheduled;
 import tr.model.action.RecurrenceRemover;
 import tr.model.future.Future;
 import tr.model.project.Project;
@@ -67,6 +68,7 @@ public final class ArchiveAction extends CallableSystemAction implements LookupL
     private static final DateFormat DATESTAMP = new SimpleDateFormat("yyyyMMdd"); // No I18N
     private static final DateFormat TIMESTAMP = new SimpleDateFormat("HHmmssSSS"); // No I18N
     private Date archiveDate;
+    private Date historicalEventCutoff;
     private Vector<Project> archiveProjects;
     private Vector<Action> archiveActions;
     private Vector<Action> archiveSingleActions;
@@ -121,6 +123,7 @@ public final class ArchiveAction extends CallableSystemAction implements LookupL
         archiveDate = DateUtils.getEnd(dialog.getArchiveDate());
         String archivePath = dialog.getArchivePath();
         doneProjectsOnly = dialog.isDoneProjectsOnly();
+        boolean historicalEvents = dialog.isHistoricalEvents();
 
         DataStore datastore = DataStoreLookup.instance().lookup(DataStore.class);
         if (datastore == null) {
@@ -175,10 +178,6 @@ public final class ArchiveAction extends CallableSystemAction implements LookupL
             return;
         }
 
-        archiveSingleActions = new Vector<>();
-        archiveActions = new Vector<>();
-        archiveProjects = new Vector<>();
-
         Data archiveData = null;
         try {
             archiveData = XStreamWrapper.instance().load(archiveFile);
@@ -188,34 +187,7 @@ public final class ArchiveAction extends CallableSystemAction implements LookupL
             return;
         }
 
-        // Remove from archive all single singleActions that are not done or
-        // have done date after the archive date
-        for (Action action : archiveData.getRootActions().getChildren(Action.class)) {
-            if (action.isDone() && action.getDoneDate().before(archiveDate)) {
-                archiveSingleActions.add(action);
-            } else {
-                LOG.log(Level.FINE, "Removing from archive - action: {0}", action.getDescription()); // No I18N
-                action.removeFromParent();
-            }
-        }
-
-        if (doneProjectsOnly) {            
-            // Remove from archive all top level projects which are not done or 
-            // have done date after archive date
-            for (Project project : archiveData.getRootProjects().getChildren(Project.class)) {
-                if (project.isDone() && project.getDoneDate().before(archiveDate)) {
-                    archiveProjects.add(project);
-                } else {
-                    LOG.log(Level.FINE, "Removing from archive - project: {0}", project.getDescription()); // No I18N
-                    project.removeFromParent();
-                }
-            }
-        } else {
-            /* @since 1.2 */
-            for (Project project : archiveData.getRootProjects().getChildren(Project.class)) {
-                keepArchived(project);
-            }
-        }
+        selectArchived(archiveData, archiveDate, doneProjectsOnly, historicalEvents);
 
         // remove from archive all unprocessed thoughts
         Manager<Thought> archiveThoughtManager = archiveData.getThoughtManager();
@@ -328,6 +300,7 @@ public final class ArchiveAction extends CallableSystemAction implements LookupL
         ArchivePrefs.setDate(archiveDate);
         ArchivePrefs.setPath(archivePath);
         ArchivePrefs.setDoneProjectsOnly(doneProjectsOnly);
+        ArchivePrefs.setHistoricalEvents(historicalEvents);
 
         StatusDisplayer.getDefault().setStatusText(""); // No I18N
 
@@ -351,16 +324,56 @@ public final class ArchiveAction extends CallableSystemAction implements LookupL
         JOptionPane.showMessageDialog(frame, m, t, JOptionPane.INFORMATION_MESSAGE);
     }
 
+    void selectArchived(Data archiveData, Date date, boolean doneProjectsOnly,
+            boolean historicalEvents) {
+        archiveDate = date;
+        historicalEventCutoff = historicalEvents ? DateUtils.getStart(new Date()) : null;
+        archiveSingleActions = new Vector<>();
+        archiveActions = new Vector<>();
+        archiveProjects = new Vector<>();
+
+        for (Action action : archiveData.getRootActions().getChildren(Action.class)) {
+            if (shouldArchive(action, true)) {
+                archiveSingleActions.add(action);
+            } else {
+                LOG.log(Level.FINE, "Removing from archive - action: {0}", action.getDescription()); // No I18N
+                action.removeFromParent();
+            }
+        }
+
+        for (Project project : archiveData.getRootProjects().getChildren(Project.class)) {
+            if (project.isDone() && project.getDoneDate().before(archiveDate)) {
+                archiveProjects.add(project);
+            } else if (!doneProjectsOnly || historicalEvents) {
+                keepArchived(project, !doneProjectsOnly);
+            } else {
+                LOG.log(Level.FINE, "Removing from archive - project: {0}", project.getDescription()); // No I18N
+                project.removeFromParent();
+            }
+        }
+    }
+
+    private boolean shouldArchive(Action action, boolean includeDone) {
+        if (includeDone && action.isDone() && action.getDoneDate().before(archiveDate)) {
+            return true;
+        }
+        if (historicalEventCutoff != null && action.getState() instanceof ActionStateScheduled scheduled) {
+            Date date = scheduled.getDate();
+            return date != null && !date.after(archiveDate) && date.before(historicalEventCutoff);
+        }
+        return false;
+    }
+
     /* Remove all projects and actions that are not to be archived and
      * return true if any are kept.
      */
-    private boolean keepArchived(Project project) {
+    private boolean keepArchived(Project project, boolean includeDone) {
 
         if (project == null) {
             return false;
         }
 
-        if (project.isDone() && project.getDoneDate().before(archiveDate)) {
+        if (includeDone && project.isDone() && project.getDoneDate().before(archiveDate)) {
             archiveProjects.add(project);
             return true;
         }
@@ -368,13 +381,13 @@ public final class ArchiveAction extends CallableSystemAction implements LookupL
         boolean isAnyKept = false;
 
         for (Project subproject : project.getChildren(Project.class)) {
-            if (keepArchived(subproject)) {
+            if (keepArchived(subproject, includeDone)) {
                 isAnyKept = true;
             }
         }
 
         for (Action action : project.getChildren(Action.class)) {
-            if (action.isDone() && action.getDoneDate().before(archiveDate)) {
+            if (shouldArchive(action, includeDone)) {
                 archiveActions.add(action);
                 isAnyKept = true;
             } else {

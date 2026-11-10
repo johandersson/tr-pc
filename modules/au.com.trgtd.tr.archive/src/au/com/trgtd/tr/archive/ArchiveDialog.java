@@ -43,6 +43,7 @@ public class ArchiveDialog extends javax.swing.JDialog {
         dateField.setDate(date);
         pathText.setText(path);
         doneProjectsOnlyCheckBox.setSelected(doneProjectsOnly);
+        historicalEventsCheckBox.setSelected(ArchivePrefs.isHistoricalEvents());
     }
     
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -72,6 +73,7 @@ public class ArchiveDialog extends javax.swing.JDialog {
         dateHintLabel = new javax.swing.JLabel();
         dateField = new au.com.trgtd.tr.swing.date.field.DateField();
         doneProjectsOnlyCheckBox = new javax.swing.JCheckBox();
+        historicalEventsCheckBox = new javax.swing.JCheckBox();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(Resources.getText("archive.title")); // NOI18N
@@ -131,6 +133,8 @@ public class ArchiveDialog extends javax.swing.JDialog {
         });
 
         doneProjectsOnlyCheckBox.setText(org.openide.util.NbBundle.getMessage(ArchiveDialog.class, "done.projects.only")); // NOI18N
+        historicalEventsCheckBox.setText(NbBundle.getMessage(ArchiveDialog.class, "historical.events"));
+        historicalEventsCheckBox.setToolTipText(NbBundle.getMessage(ArchiveDialog.class, "historical.events.hint"));
 
         javax.swing.GroupLayout centerPanelLayout = new javax.swing.GroupLayout(centerPanel);
         centerPanel.setLayout(centerPanelLayout);
@@ -139,6 +143,9 @@ public class ArchiveDialog extends javax.swing.JDialog {
             .addGroup(centerPanelLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(centerPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(centerPanelLayout.createSequentialGroup()
+                        .addComponent(historicalEventsCheckBox, javax.swing.GroupLayout.DEFAULT_SIZE, 594, Short.MAX_VALUE)
+                        .addContainerGap())
                     .addGroup(centerPanelLayout.createSequentialGroup()
                         .addComponent(doneProjectsOnlyCheckBox, javax.swing.GroupLayout.DEFAULT_SIZE, 594, Short.MAX_VALUE)
                         .addContainerGap())
@@ -177,6 +184,8 @@ public class ArchiveDialog extends javax.swing.JDialog {
                 .addComponent(pathHintLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(doneProjectsOnlyCheckBox)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(historicalEventsCheckBox)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -266,6 +275,10 @@ public class ArchiveDialog extends javax.swing.JDialog {
     public boolean isDoneProjectsOnly() {
         return doneProjectsOnlyCheckBox.isSelected();
     }    
+
+    public boolean isHistoricalEvents() {
+        return historicalEventsCheckBox.isSelected();
+    }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton archiveButton;
@@ -276,6 +289,7 @@ public class ArchiveDialog extends javax.swing.JDialog {
     private javax.swing.JLabel dateHintLabel;
     private javax.swing.JLabel dateLabel;
     private javax.swing.JCheckBox doneProjectsOnlyCheckBox;
+    private javax.swing.JCheckBox historicalEventsCheckBox;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JButton pathButton;
     private javax.swing.JLabel pathHintLabel;

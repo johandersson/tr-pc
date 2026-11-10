@@ -21,6 +21,11 @@
                 have been completed by the archive date for actions to be archived. If unchecked, the 
                 archiving is done on current projects or on projects completed after the archived date
                 as long as the actions have been set to done before or on the archive date.</li>
+            <li>check box Also archive historical calendar events: includes scheduled actions
+                on or before the Archive Date and before today, whether done or not.
+                This also includes scheduled actions inside unfinished projects, even when
+                Archive Done projects only is checked. Today's and future scheduled actions
+                are not included by this option.</li>
         </ul>
 
         <p>Press the Archive button to start the process. A message is displayed
@@ -63,6 +68,10 @@
 
         <b>Notes</b>
         <ul>
+            <li>The historical calendar events option additionally keeps eligible scheduled
+                actions in the archive and removes them from the current data file.
+                Their project hierarchy is preserved in both files when needed.
+                This applies to all scheduled actions, not just imported calendar events.</li>
             <li>Projects and actions under the Future Projects and Template
                 Projects Tab are never archived;</li>
             <li>Contexts, Topics and Criteria values are saved in the archived

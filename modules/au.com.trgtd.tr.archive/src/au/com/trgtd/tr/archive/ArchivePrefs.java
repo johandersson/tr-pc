@@ -38,6 +38,7 @@ public class ArchivePrefs {
     private static final String KEY_PATH = "path"; // No I18N
     private static final String KEY_DATE = "date"; // No I18N
     private static final String KEY_DONE_PROJECTS_ONLY = "done.projects.only"; // No I18N
+    private static final String KEY_HISTORICAL_EVENTS = "historical.events"; // No I18N
 
     private static final String DEF_PATH = ""; // No I18N
     private static final long DEF_DATE = -1;
@@ -98,6 +99,15 @@ public class ArchivePrefs {
         flush();        
     }
     
+    public static boolean isHistoricalEvents() {
+        return PREFS.getBoolean(KEY_HISTORICAL_EVENTS, false);
+    }
+
+    public static void setHistoricalEvents(boolean value) {
+        PREFS.putBoolean(KEY_HISTORICAL_EVENTS, value);
+        flush();
+    }
+
     private static void flush() {
         try {
             PREFS.flush();
