@@ -29,6 +29,7 @@ import tr.model.action.ActionStateDelegated;
 import tr.model.action.ActionStateInactive;
 import tr.model.action.ActionStateScheduled;
 import tr.model.project.Project;
+import tr.model.context.Context;
 import tr.model.thought.Thought;
 
 public class DashboardModelTest {
@@ -127,6 +128,77 @@ public class DashboardModelTest {
         assertEquals(List.of(asap), model.due);
         assertEquals(List.of(delegated), model.followUps);
         assertNull(DashboardModel.getProject(asap));
+    }
+
+    @Test
+    public void nextActionsSortByContextThenDueDateWithUndatedLast() {
+        Data data = new Data();
+        Context home = new Context(data.getNextID());
+        home.setName("Home");
+        Context work = new Context(data.getNextID());
+        work.setName("Work");
+        Action homeUndated = nextAction(data, home, "Undated", null);
+        Action homeLater = nextAction(data, home, "Later", NOW.plusDays(2));
+        Action workOverdue = nextAction(data, work, "Overdue", NOW.minusDays(2));
+        Action homeEarlier = nextAction(data, home, "Earlier", NOW.minusDays(1));
+        Action homeSameDate = nextAction(data, home, "Alphabetically first", NOW.plusDays(2));
+
+        assertEquals(List.of(homeEarlier, homeSameDate, homeLater, homeUndated, workOverdue),
+                DashboardModel.build(data, date(NOW), 2).nextActions);
+    }
+
+    @Test
+    public void nextActionsIncludeProjectAndSingleActionsButExcludeUnavailableStates() {
+        Data data = new Data();
+        Action single = new Action(data);
+        data.getRootActions().add(single);
+        Project project = project(data, "Project");
+        Action projectAction = new Action(data);
+        project.add(projectAction);
+        data.getRootProjects().add(project);
+        Action done = new Action(data);
+        done.setDone(true);
+        Action future = new Action(data);
+        future.setStartDate(date(NOW.plusDays(1)));
+        Action inactive = new Action(data);
+        inactive.setState(new ActionStateInactive());
+        Action delegated = new Action(data);
+        delegated.setState(new ActionStateDelegated());
+        for (Action action : List.of(done, future, inactive, delegated, scheduled(data, NOW))) {
+            data.getRootActions().add(action);
+        }
+
+        DashboardModel model = DashboardModel.build(data, date(NOW), 2);
+        assertEquals(2, model.doAsapCount);
+        assertEquals(2, model.nextActions.size());
+        assertTrue(model.nextActions.containsAll(List.of(single, projectAction)));
+        assertTrue(DashboardModel.build(null, date(NOW), 2).nextActions.isEmpty());
+    }
+
+    @Test
+    public void thousandsOfNextActionsRetainOnlyTheFirstTenInSortedOrder() {
+        Data data = new Data();
+        Context context = new Context(data.getNextID());
+        context.setName("Work");
+        for (int i = 999; i >= 0; i--) {
+            nextAction(data, context, "Action " + i, NOW.plusDays(i));
+        }
+        DashboardModel model = DashboardModel.build(data, date(NOW), 2);
+
+        assertEquals(1000, model.doAsapCount);
+        assertEquals(10, model.nextActions.size());
+        for (int i = 0; i < 10; i++) {
+            assertEquals("Action " + i, model.nextActions.get(i).getDescription());
+        }
+    }
+
+    private static Action nextAction(Data data, Context context, String description, LocalDateTime due) {
+        Action action = new Action(data);
+        action.setContext(context);
+        action.setDescription(description);
+        action.setDueDate(due == null ? null : date(due));
+        data.getRootActions().add(action);
+        return action;
     }
 
     @Test

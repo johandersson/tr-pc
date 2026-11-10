@@ -31,6 +31,9 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Improvements
 
+- **Next actions on the dashboard.** Shows up to 10 available Do ASAP actions,
+  sorted by context and then earliest due date, with undated actions last
+  within each context. A link opens the full Do ASAP screen.
 - **Dashboard auto-refresh.** Visible dashboards update after thought capture
   and project/action changes, with rapid updates batched together and no polling.
   Returning to the dashboard refreshes it again.

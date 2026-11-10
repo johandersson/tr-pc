@@ -19,6 +19,7 @@ package au.com.trgtd.tr.view.overview.dashboard;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -38,6 +39,12 @@ import tr.model.thought.Thought;
  */
 public final class DashboardModel {
 
+    static final int NEXT_ACTIONS_LIMIT = 10;
+    private static final Comparator<Action> NEXT_ACTION_ORDER = Comparator
+            .comparing((Action action) -> action.getContext().getName(), String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(Action::getDueDate, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(Action::getDescription, String.CASE_INSENSITIVE_ORDER);
+
     /** A project, its depth in the projects tree and its active action count. */
     public record ProjectInfo(Project project, int depth, int activeActions) {}
 
@@ -49,6 +56,8 @@ public final class DashboardModel {
     public final List<Action> due = new ArrayList<>();
     /** Delegated actions with a follow-up date today or earlier. */
     public final List<Action> followUps = new ArrayList<>();
+    /** Up to ten available Do ASAP actions, sorted by context then due date (undated last). */
+    public final List<Action> nextActions = new ArrayList<>();
     /** Not done projects with at least one active action, in tree order. */
     public final List<ProjectInfo> activeProjects = new ArrayList<>();
     /** Started, not done projects without any active action, in tree order. */
@@ -153,6 +162,16 @@ public final class DashboardModel {
                 Date start = action.getStartDate();
                 if (start == null || start.getTime() < startTomorrow) {
                     doAsapCount++;
+                    int index = Collections.binarySearch(nextActions, action, NEXT_ACTION_ORDER);
+                    if (index < 0) {
+                        index = -index - 1;
+                    }
+                    if (index < NEXT_ACTIONS_LIMIT) {
+                        nextActions.add(index, action);
+                        if (nextActions.size() > NEXT_ACTIONS_LIMIT) {
+                            nextActions.remove(NEXT_ACTIONS_LIMIT);
+                        }
+                    }
                 }
             }
             Date dueDate = action.getDueDate();

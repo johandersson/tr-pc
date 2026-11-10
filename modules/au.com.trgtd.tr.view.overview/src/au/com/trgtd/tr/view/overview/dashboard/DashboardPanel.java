@@ -99,12 +99,7 @@ public final class DashboardPanel extends JPanel {
         JPanel summary = row();
         summary.add(link(msg("dashboard.inbox", model.inboxCount), () -> perform(ProcessThoughtsAction.class)));
         summary.add(text("   "));
-        summary.add(link(msg("dashboard.doasap", model.doAsapCount), () -> {
-            RAAction action = SystemAction.get(RAAction.class);
-            if (action.isEnabled()) {
-                action.performAction(ActionsScreen.DO_ASAP_KEY);
-            }
-        }));
+        summary.add(link(msg("dashboard.doasap", model.doAsapCount), DashboardPanel::openDoAsap));
         summary.add(text("   "));
         summary.add(link(msg("dashboard.capture"), () -> perform(AddThoughtsAction.class)));
         summary.add(text("   "));
@@ -117,6 +112,7 @@ public final class DashboardPanel extends JPanel {
         section("upcoming", msg("dashboard.upcoming", DashboardPanel.UPCOMING_DAYS), model.upcoming,
                 a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), this::openAction,
                 msg("dashboard.upcoming.none"));
+        nextActions(model);
         section("due", msg("dashboard.due"), model.due,
                 a -> "<b>" + dateFormat.format(a.getDueDate()) + "</b> " + escape(a.getDescription()) + projectSuffix(a),
                 this::openAction, null);
@@ -131,20 +127,34 @@ public final class DashboardPanel extends JPanel {
                 p -> openProject(p.project()), msg("dashboard.projects.none"));
     }
 
+    private void nextActions(DashboardModel model) {
+        sectionHeader(msg("dashboard.next"), model.doAsapCount);
+        if (model.nextActions.isEmpty()) {
+            add(text("<html><i>" + escape(msg("dashboard.next.none")) + "</i></html>"));
+            return;
+        }
+        for (Action action : model.nextActions) {
+            String due = action.getDueDate() == null ? "" : "<b>" + dateFormat.format(action.getDueDate()) + "</b> ";
+            add(link("<html><b>" + escape(action.getContext().getName()) + "</b> - "
+                    + due + escape(action.getDescription()) + projectSuffix(action) + "</html>",
+                    () -> openAction(action)));
+        }
+        add(link(msg("dashboard.next.all", model.doAsapCount), DashboardPanel::openDoAsap));
+    }
+
+    private static void openDoAsap() {
+        RAAction action = SystemAction.get(RAAction.class);
+        if (action.isEnabled()) {
+            action.performAction(ActionsScreen.DO_ASAP_KEY);
+        }
+    }
+
     private <T> void section(String key, String heading, List<T> items, Function<T, String> html,
             java.util.function.Consumer<T> onClick, String emptyText) {
         if (items.isEmpty() && emptyText == null) {
             return;
         }
-        add(Box.createVerticalStrut(14));
-        JLabel header = new JLabel(heading + (items.isEmpty() ? "" : " (" + items.size() + ")"));
-        header.setFont(header.getFont().deriveFont(Font.BOLD));
-        header.setAlignmentX(LEFT_ALIGNMENT);
-        header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, separatorColor()),
-                BorderFactory.createEmptyBorder(0, 0, 3, 0)));
-        add(header);
-        add(Box.createVerticalStrut(3));
+        sectionHeader(heading, items.size());
         if (items.isEmpty()) {
             add(text("<html><i>" + escape(emptyText) + "</i></html>"));
             return;
@@ -164,6 +174,18 @@ public final class DashboardPanel extends JPanel {
                 refresh();
             }));
         }
+    }
+
+    private void sectionHeader(String heading, int count) {
+        add(Box.createVerticalStrut(14));
+        JLabel header = new JLabel(heading + (count == 0 ? "" : " (" + count + ")"));
+        header.setFont(header.getFont().deriveFont(Font.BOLD));
+        header.setAlignmentX(LEFT_ALIGNMENT);
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, separatorColor()),
+                BorderFactory.createEmptyBorder(0, 0, 3, 0)));
+        add(header);
+        add(Box.createVerticalStrut(3));
     }
 
     private String time(Action action, boolean withDay) {
