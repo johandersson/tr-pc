@@ -81,20 +81,29 @@ public final class DashboardPanel extends JPanel {
     private final DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM);
     private final Runnable nextActionsNavigation;
     private final Consumer<URI> callLauncher;
+    private final Consumer<Action> actionNavigation;
     private final Consumer<Future> somedayNavigation;
 
     public DashboardPanel() {
-        this(DashboardPanel::openDoAsap, DashboardPanel::openCall);
+        this(DashboardPanel::openDoAsap, DashboardPanel::openCall,
+                DashboardPanel::openAction, DashboardPanel::openSomeday);
     }
 
     DashboardPanel(Runnable nextActionsNavigation, Consumer<URI> callLauncher) {
-        this(nextActionsNavigation, callLauncher, DashboardPanel::openSomeday);
+        this(nextActionsNavigation, callLauncher, DashboardPanel::openAction,
+                DashboardPanel::openSomeday);
     }
 
     DashboardPanel(Runnable nextActionsNavigation, Consumer<URI> callLauncher,
             Consumer<Future> somedayNavigation) {
+        this(nextActionsNavigation, callLauncher, DashboardPanel::openAction, somedayNavigation);
+    }
+
+    DashboardPanel(Runnable nextActionsNavigation, Consumer<URI> callLauncher,
+            Consumer<Action> actionNavigation, Consumer<Future> somedayNavigation) {
         this.nextActionsNavigation = nextActionsNavigation;
         this.callLauncher = callLauncher;
+        this.actionNavigation = actionNavigation;
         this.somedayNavigation = somedayNavigation;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
@@ -133,20 +142,20 @@ public final class DashboardPanel extends JPanel {
         add(summary);
 
         section("today", msg("dashboard.today"), model.today,
-                a -> time(a, false) + escape(a.getDescription()) + projectSuffix(a), this::openAction,
+                a -> time(a, false) + escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.today.none"));
         section("upcoming", msg("dashboard.upcoming", DashboardPanel.UPCOMING_DAYS), model.upcoming,
-                a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), this::openAction,
+                a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.upcoming.none"));
         nextActions(model);
         calls(model);
         section("due", msg("dashboard.due"), model.due,
                 a -> "<b>" + dateFormat.format(a.getDueDate()) + "</b> " + escape(a.getDescription()) + projectSuffix(a),
-                this::openAction, null);
+                actionNavigation, null);
         section("followups", msg("dashboard.followups"), model.followUps,
-                a -> escape(a.getDescription()) + projectSuffix(a), this::openAction, null);
+                a -> escape(a.getDescription()) + projectSuffix(a), actionNavigation, null);
         section("waiting", msg("dashboard.waiting"), model.waitingFor,
-                a -> escape(a.getDescription()) + projectSuffix(a), this::openAction,
+                a -> escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.waiting.none"));
         section("someday", msg("dashboard.someday"), model.somedayMaybe,
                 f -> escape(f.getDescription()), somedayNavigation, msg("dashboard.someday.none"));
@@ -169,7 +178,7 @@ public final class DashboardPanel extends JPanel {
         for (Action action : model.calls) {
             String due = action.getDueDate() == null ? "" : "<b>" + dateFormat.format(action.getDueDate()) + "</b> ";
             add(link("<html>" + due + escape(action.getDescription()) + projectSuffix(action) + "</html>",
-                    () -> openAction(action)));
+                    () -> actionNavigation.accept(action)));
             for (PhoneLinks.Phone phone : PhoneLinks.find(action.getDescription(), action.getNotes())) {
                 add(link("<html>&nbsp;&nbsp;" + escape(phone.label()) + "</html>",
                         () -> callLauncher.accept(phone.uri())));
@@ -201,7 +210,7 @@ public final class DashboardPanel extends JPanel {
             String due = action.getDueDate() == null ? "" : "<b>" + dateFormat.format(action.getDueDate()) + "</b> ";
             add(link("<html><b>" + escape(action.getContext().getName()) + "</b> - "
                     + due + escape(action.getDescription()) + projectSuffix(action) + "</html>",
-                    nextActionsNavigation));
+                    () -> actionNavigation.accept(action)));
         }
         add(link(msg("dashboard.next.all", model.doAsapCount), nextActionsNavigation));
     }
@@ -283,7 +292,7 @@ public final class DashboardPanel extends JPanel {
         });
     }
 
-    private void openAction(Action action) {
+    private static void openAction(Action action) {
         perform(ProjectsAction.class);
         EventQueue.invokeLater(() -> {
             if (action.isSingleAction()) {

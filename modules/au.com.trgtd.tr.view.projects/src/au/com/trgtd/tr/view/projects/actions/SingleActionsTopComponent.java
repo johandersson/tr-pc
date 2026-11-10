@@ -349,7 +349,7 @@ public class SingleActionsTopComponent extends Window
         requestVisible();
 
         try {
-            manager.setSelectedNodes(new Node[]{node});
+            manager.setExploredContextAndSelection(node, new Node[]{node});
 
             ViewCookie cookie = node.getCookie(ViewCookie.class);
             if (cookie != null) {

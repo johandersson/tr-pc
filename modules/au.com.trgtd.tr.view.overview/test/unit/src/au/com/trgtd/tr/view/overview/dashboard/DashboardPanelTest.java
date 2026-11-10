@@ -232,7 +232,7 @@ public class DashboardPanelTest {
     }
 
     @Test
-    public void nextActionRowsAndFooterUseTheSameDoAsapNavigation() throws Exception {
+    public void nextActionRowsSelectTheirActionAndFooterOpensDoAsap() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             Data original = DataLookup.instance().lookup(Data.class);
             try {
@@ -242,7 +242,9 @@ public class DashboardPanelTest {
                 data.getRootActions().add(action);
                 DataLookup.instance().setData(data);
                 int[] navigations = {0};
-                DashboardPanel panel = new DashboardPanel(() -> navigations[0]++, uri -> fail("Not a call"));
+                List<Action> selected = new ArrayList<>();
+                DashboardPanel panel = new DashboardPanel(() -> navigations[0]++,
+                        uri -> fail("Not a call"), selected::add, future -> fail("Not a someday item"));
                 panel.refresh();
                 for (Component component : panel.getComponents()) {
                     if (component instanceof JLabel label
@@ -252,7 +254,8 @@ public class DashboardPanelTest {
                         click(label);
                     }
                 }
-                assertEquals("Individual rows and footer must both open Actions / Do ASAP", 2, navigations[0]);
+                assertEquals(List.of(action), selected);
+                assertEquals("Only the footer should open Actions / Do ASAP", 1, navigations[0]);
             } finally {
                 DataLookup.instance().setData(original);
             }
