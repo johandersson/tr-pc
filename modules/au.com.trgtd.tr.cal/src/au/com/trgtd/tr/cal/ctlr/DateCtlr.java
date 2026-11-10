@@ -20,6 +20,9 @@ package au.com.trgtd.tr.cal.ctlr;
 import au.com.trgtd.tr.cal.model.Day;
 import au.com.trgtd.tr.cal.utils.DateUtils;
 import au.com.trgtd.tr.prefs.dates.DatesPrefs;
+import java.awt.Component;
+import java.awt.event.HierarchyEvent;
+import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.Calendar;
@@ -159,6 +162,26 @@ public class DateCtlr {
     
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         pcs.addPropertyChangeListener(listener);
+    }
+
+    /**
+     * Observes date changes only while the owning view is showing, refreshing
+     * it when shown again so changes made while hidden are not missed.
+     */
+    public void addPropertyChangeListener(Component owner, PropertyChangeListener listener) {
+        owner.addHierarchyListener(event -> {
+            if ((event.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                if (owner.isShowing()) {
+                    pcs.addPropertyChangeListener(listener);
+                    listener.propertyChange(new PropertyChangeEvent(this, PROP_DATE, null, date));
+                } else {
+                    pcs.removePropertyChangeListener(listener);
+                }
+            }
+        });
+        if (owner.isShowing()) {
+            pcs.addPropertyChangeListener(listener);
+        }
     }
     
     public void removePropertyChangeListener(PropertyChangeListener listener) {

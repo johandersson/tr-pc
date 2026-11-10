@@ -87,7 +87,7 @@ public final class DayTopComponent extends TopComponent
         treeView.setRootVisible(false);
         treeView.setBackground(Color.WHITE);
 
-        dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             treeView.expandAll();
         });
         

@@ -58,6 +58,8 @@ public class CalModelImp implements CalModel {
     private static final char CHAR_SCHEDULE = '\u2637';
 
     private boolean showDone = false;
+    private long scheduledEventsRevision = Long.MIN_VALUE;
+    private Map<Date, List<ScheduledEvent>> scheduledEventsByDay = Collections.emptyMap();
 
     public CalModelImp() {
     }
@@ -69,6 +71,9 @@ public class CalModelImp implements CalModel {
 
     @Override
     public void setShowDone(boolean showDone) {
+        if (this.showDone != showDone) {
+            scheduledEventsRevision = Long.MIN_VALUE;
+        }
         this.showDone = showDone;
     }
 
@@ -168,16 +173,9 @@ public class CalModelImp implements CalModel {
     @Override
     public List<CalEvent> getEventsScheduledTime(Day day) {
         List<CalEvent> events = new ArrayList<>();
-        for (Action action : Services.instance.getAllActions()) {
-            if (action.isStateScheduled()) {
-                if (showDone || !action.isDone()) {
-                    ScheduledEvent scheduledEvent = new ScheduledEvent(action);
-                    if (scheduledEvent.isValid()
-                            && scheduledEvent.isOn(day.getDate())
-                            && scheduledEvent.hasDuration()) {
-                        events.add(scheduledEvent);
-                    }
-                }
+        for (ScheduledEvent event : getScheduledEventsOn(day)) {
+            if (event.hasDuration()) {
+                events.add(event);
             }
         }
         return events;
@@ -186,22 +184,35 @@ public class CalModelImp implements CalModel {
     @Override
     public List<CalEvent> getEventsScheduledAllDay(Day day) {
         List<CalEvent> events = new ArrayList<>();
-        for (Action action : Services.instance.getAllActions()) {
-            if (!action.isStateScheduled()) {
-                continue;
-            }
-            if (action.isDone() && !showDone) {
-                continue;
-            }
-            ScheduledEvent scheduledEvent = new ScheduledEvent(action);
-            if (scheduledEvent.isValid()
-                    && scheduledEvent.isOn(day.getDate())
-                    && !scheduledEvent.hasDuration()) {
-                events.add(scheduledEvent);
+        for (ScheduledEvent event : getScheduledEventsOn(day)) {
+            if (!event.hasDuration()) {
+                events.add(event);
             }
         }
         events.sort(COMPARATOR);
         return events;
+    }
+
+    private List<ScheduledEvent> getScheduledEventsOn(Day day) {
+        long revision = Services.instance.getActionsRevision();
+        if (scheduledEventsRevision != revision) {
+            Map<Date, List<ScheduledEvent>> byDay = new HashMap<>();
+            for (Action action : Services.instance.getAllActions()) {
+                if (!action.isStateScheduled() || (!showDone && action.isDone())) {
+                    continue;
+                }
+                ScheduledEvent event = new ScheduledEvent(action);
+                if (event.isValid()) {
+                    for (Date date : getDates(event.getCalEventStart(), event.getCalEventEnd())) {
+                        byDay.computeIfAbsent(date, key -> new ArrayList<>()).add(event);
+                    }
+                }
+            }
+            scheduledEventsByDay = byDay;
+            scheduledEventsRevision = revision;
+        }
+        return scheduledEventsByDay.getOrDefault(
+                DateUtils.clearTime(day.getDate()), Collections.emptyList());
     }
 
 

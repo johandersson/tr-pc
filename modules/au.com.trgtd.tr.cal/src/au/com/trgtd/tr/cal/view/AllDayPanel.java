@@ -64,7 +64,7 @@ public final class AllDayPanel extends JPanel {
        
         add(scrollPane, BorderLayout.CENTER);
         
-        dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             setBackground();
         });
         

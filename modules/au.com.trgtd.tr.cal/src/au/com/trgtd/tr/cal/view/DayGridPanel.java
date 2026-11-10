@@ -98,7 +98,7 @@ public class DayGridPanel extends JLayeredPane {
             public void componentHidden(ComponentEvent ce) {
             }
         });
-        dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             setBackground();
         });
     }

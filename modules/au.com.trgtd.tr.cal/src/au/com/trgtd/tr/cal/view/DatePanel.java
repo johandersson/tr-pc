@@ -67,7 +67,7 @@ public final class DatePanel extends JPanel {
     public DatePanel(DateCtlr dateCtlr, Period period) {
         this.period = period;
         this.dateCtlr = dateCtlr;
-        this.dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        this.dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             dateChanged();
         });
         initThisPanel();

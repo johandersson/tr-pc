@@ -77,7 +77,7 @@ public class MonthPanel extends JPanel {
         this.dayViewer = dayViewer;
         this.calModel = calModel;
         this.dateCtlr = dateCtlr;
-        this.dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        this.dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             initGridDates();
         });
         initGridDates();

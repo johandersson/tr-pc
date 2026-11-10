@@ -75,7 +75,7 @@ public final class YearTopComponent extends TopComponent implements MonthViewer,
     }
 
     private void initComponents() {
-        dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             revalidate();
             repaint();
         });

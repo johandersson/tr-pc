@@ -69,7 +69,7 @@ public final class DayListCtlr {
 
         this.calModel.addPropertyChangeListener(CalModel.PROP_INSERT, pclInsert);
         this.calModel.addPropertyChangeListener(CalModel.PROP_REMOVE, pclRemove);
-        this.dateCtlr.addPropertyChangeListener(pclDate);
+        this.dateCtlr.addPropertyChangeListener(dayListPanel, pclDate);
         this.dayListPanel.resetEvents(getEventLabels());
     }
 

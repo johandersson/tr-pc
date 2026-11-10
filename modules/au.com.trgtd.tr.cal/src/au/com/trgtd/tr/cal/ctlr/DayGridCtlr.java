@@ -67,7 +67,7 @@ public final class DayGridCtlr {
         this.initEventMap();
         this.calModel.addPropertyChangeListener(CalModel.PROP_INSERT, pclInsert);
         this.calModel.addPropertyChangeListener(CalModel.PROP_REMOVE, pclRemove);        
-        this.dateCtlr.addPropertyChangeListener(pclDate);        
+        this.dateCtlr.addPropertyChangeListener(dayGridPanel, pclDate);
         this.dayGridPanel.resetEvents(getEventPanels());
     }
   

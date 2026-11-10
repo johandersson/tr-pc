@@ -77,7 +77,7 @@ public class DayOfMonthChooserPanel extends JPanel {
         dateChanged(null, dateCtlr.getDate());
 
 
-        this.dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        this.dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             dateChanged((Date) pce.getOldValue(), (Date) pce.getNewValue());
         });
 

@@ -55,7 +55,7 @@ public class YearPanel extends JPanel {
         this.bg = bg;
         this.dateCtlr = dateCtlr;
         this.monthsPanel = makeMonthsPanel();
-        this.dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        this.dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             initGrid();
         });
         this.setOpaque(false);

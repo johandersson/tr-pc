@@ -81,7 +81,7 @@ public final class MonthTopComponent extends TopComponent implements DayViewer {
         setOpaque(true);
         setBackground(ViewUtils.COLOR_PANEL_BG);
 
-        dateCtlr.addPropertyChangeListener((PropertyChangeEvent pce) -> {
+        dateCtlr.addPropertyChangeListener(this, (PropertyChangeEvent pce) -> {
             revalidate();
             repaint();
         });

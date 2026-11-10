@@ -81,7 +81,7 @@ public final class WeekPanelCtlr {
             index++;            
         }
         this.weekPanel = new WeekPanel(dayTimePanel, dayGridPanels, dayListPanels);        
-        this.dateCtlr.addPropertyChangeListener(pclDate);        
+        this.dateCtlr.addPropertyChangeListener(weekPanel, pclDate);
         this.initDates();
     }
 
