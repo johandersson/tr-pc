@@ -52,6 +52,8 @@ import au.com.trgtd.tr.view.ToggleHideDoneAction;
 import au.com.trgtd.tr.view.ViewUtils;
 import au.com.trgtd.tr.view.projects.goals.ToggleShowGoalsAction;
 import java.awt.BorderLayout;
+import java.beans.PropertyVetoException;
+import java.util.ArrayDeque;
 import javax.swing.ActionMap;
 import javax.swing.JScrollPane;
 import javax.swing.text.DefaultEditorKit;
@@ -330,7 +332,7 @@ public class ProjectsTreeTopComponent extends TopComponent
         requestVisible();
 
         try {
-            manager.setExploredContextAndSelection(node, new Node[]{node});
+            reveal(node);
             ViewCookie cookie = node.getCookie(ViewCookie.class);
             if (cookie != null) {
                 cookie.view();
@@ -361,7 +363,7 @@ public class ProjectsTreeTopComponent extends TopComponent
         requestVisible();
 
         try {
-            manager.setExploredContextAndSelection(node, new Node[]{node});
+            reveal(node);
 
             ViewCookie cookie = node.getCookie(ViewCookie.class);
             if (cookie != null) {
@@ -370,6 +372,18 @@ public class ProjectsTreeTopComponent extends TopComponent
         } catch (Exception ex) {
             LOG.severe("Project node could not be selected in the tree.");
         }
+    }
+
+    private void reveal(Node node) throws PropertyVetoException {
+        ArrayDeque<Node> ancestors = new ArrayDeque<>();
+        for (Node ancestor = node.getParentNode(); ancestor != null; ancestor = ancestor.getParentNode()) {
+            ancestors.push(ancestor);
+        }
+        TreeView treeView = (TreeView) projectsPane;
+        while (!ancestors.isEmpty()) {
+            treeView.expandNode(ancestors.pop());
+        }
+        manager.setSelectedNodes(new Node[]{node});
     }
 
     public void edit(Project project) {

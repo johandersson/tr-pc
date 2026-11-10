@@ -349,7 +349,8 @@ public class SingleActionsTopComponent extends Window
         requestVisible();
 
         try {
-            manager.setExploredContextAndSelection(node, new Node[]{node});
+            getTreeView().expandNode(rootNode);
+            manager.setSelectedNodes(new Node[]{node});
 
             ViewCookie cookie = node.getCookie(ViewCookie.class);
             if (cookie != null) {

@@ -30,6 +30,7 @@ import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.action.Action;
 import tr.model.action.ActionStateDelegated;
+import tr.model.action.ActionStateScheduled;
 import tr.model.future.Future;
 import static org.junit.Assert.*;
 
@@ -256,6 +257,38 @@ public class DashboardPanelTest {
                 }
                 assertEquals(List.of(action), selected);
                 assertEquals("Only the footer should open Actions / Do ASAP", 1, navigations[0]);
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    @Test
+    public void scheduledRowsSelectTheirExactAction() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                Action action = new Action(data);
+                action.setDescription("Scheduled dashboard action");
+                ActionStateScheduled state = new ActionStateScheduled();
+                state.setDate(new java.util.Date());
+                action.setState(state);
+                data.getRootActions().add(action);
+                DataLookup.instance().setData(data);
+                List<Action> selected = new ArrayList<>();
+                DashboardPanel panel = new DashboardPanel(() -> fail("Not the footer"),
+                        uri -> fail("Not a call"), selected::add, future -> fail("Not a someday item"));
+                panel.refresh();
+
+                for (Component component : panel.getComponents()) {
+                    if (component instanceof JLabel label
+                            && label.getText().contains("Scheduled dashboard action")) {
+                        click(label);
+                    }
+                }
+
+                assertEquals(List.of(action), selected);
             } finally {
                 DataLookup.instance().setData(original);
             }
