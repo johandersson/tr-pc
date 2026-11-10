@@ -56,6 +56,7 @@ For a focused change, run the affected module's tests, for example:
 Before submitting, run the headless checks and the application build sequentially:
 
 ```shell
+git diff --check
 ./gradlew -p gradle check
 ant build-zip
 ```
