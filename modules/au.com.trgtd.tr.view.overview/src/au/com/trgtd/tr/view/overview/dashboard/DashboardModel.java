@@ -60,9 +60,9 @@ public final class DashboardModel {
     public final List<Action> due = new ArrayList<>();
     /** Delegated actions with a follow-up date today or earlier. */
     public final List<Action> followUps = new ArrayList<>();
-    /** Up to ten available Do ASAP actions, sorted by context then due date (undated last). */
+    /** Up to ten available non-Calls Do ASAP actions, sorted by context then due date. */
     public final List<Action> nextActions = new ArrayList<>();
-    /** Up to ten active Calls actions, earliest due date first. */
+    /** All unfinished Calls actions, earliest due date first. */
     public final List<Action> calls = new ArrayList<>();
     /** Available delegated actions or actions in the Waiting For context. */
     public final List<Action> waitingFor = new ArrayList<>();
@@ -74,6 +74,7 @@ public final class DashboardModel {
     public final List<ProjectInfo> stalledProjects = new ArrayList<>();
     public int inboxCount;
     public int doAsapCount;
+    public int nextActionsCount;
     public int callsCount;
 
     private final long startToday;
@@ -116,6 +117,7 @@ public final class DashboardModel {
         model.somedayMaybe.addAll(data.getFutureManager().list());
         model.somedayMaybe.sort(Comparator.comparing(Future::getDescription, String.CASE_INSENSITIVE_ORDER));
         model.waitingFor.sort(DUE_ORDER);
+        model.calls.sort(DUE_ORDER);
 
         Comparator<Action> byScheduled = Comparator.comparing(DashboardModel::scheduledDate);
         model.today.sort(byScheduled);
@@ -162,10 +164,10 @@ public final class DashboardModel {
                 && (start == null || start.getTime() < startTomorrow)) {
             waitingFor.add(action);
         }
-        if (action.isActive() && action.getContext().hasName("Calls")
-                && (start == null || start.getTime() < startTomorrow)) {
+        boolean call = action.getContext().hasName("Calls");
+        if (call) {
             callsCount++;
-            addLimited(calls, action, DUE_ORDER);
+            calls.add(action);
         }
         if (state instanceof ActionStateScheduled scheduled) {
             Date date = scheduled.getDate();
@@ -186,7 +188,10 @@ public final class DashboardModel {
             } else if (action.isStateASAP()) {
                 if (start == null || start.getTime() < startTomorrow) {
                     doAsapCount++;
-                    addLimited(nextActions, action, NEXT_ACTION_ORDER);
+                    if (!call) {
+                        nextActionsCount++;
+                        addLimited(nextActions, action, NEXT_ACTION_ORDER);
+                    }
                 }
             }
             Date dueDate = action.getDueDate();

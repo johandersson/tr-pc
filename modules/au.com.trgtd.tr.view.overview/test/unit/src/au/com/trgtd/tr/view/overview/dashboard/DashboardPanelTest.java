@@ -36,6 +36,71 @@ import static org.junit.Assert.*;
 public class DashboardPanelTest {
 
     @Test
+    public void callsSectionIsVisibleWithoutCalls() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                DataLookup.instance().setData(new Data());
+                DashboardPanel panel = new DashboardPanel();
+                panel.refresh();
+                for (String key : List.of("dashboard.calls", "dashboard.calls.none")) {
+                    String text = NbBundle.getMessage(DashboardPanel.class, key);
+                    assertTrue(key, List.of(panel.getComponents()).stream()
+                            .anyMatch(c -> c instanceof JLabel label && label.getText().contains(text)));
+                }
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    @Test
+    public void allCallsAreRenderedOnlyInCallsWithNoteOnlyPhoneLinks() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                var context = data.getContextManager().list().stream()
+                        .filter(c -> c.hasName("Calls")).findFirst().orElseThrow();
+                for (int i = 0; i < 15; i++) {
+                    Action call = new Action(data);
+                    call.setContext(context);
+                    call.setDescription("Phone-row-" + i);
+                    call.setNotes("+46 70 123 45 67");
+                    data.getRootActions().add(call);
+                }
+                DataLookup.instance().setData(data);
+                List<URI> dialed = new ArrayList<>();
+                DashboardPanel panel = new DashboardPanel(() -> {}, dialed::add);
+                panel.refresh();
+                boolean inCalls = false;
+                int rows = 0;
+                for (Component component : panel.getComponents()) {
+                    if (component instanceof JLabel label) {
+                        if (label.getText().equals(NbBundle.getMessage(
+                                DashboardPanel.class, "dashboard.calls") + " (15)")) {
+                            inCalls = true;
+                        }
+                        if (label.getText().contains("Phone-row-")) {
+                            assertTrue("Calls must not appear in Next actions", inCalls);
+                            rows++;
+                        }
+                        if (label.getText().contains("&nbsp;&nbsp;+46 70 123 45 67")) {
+                            assertTrue(inCalls);
+                            click(label);
+                        }
+                    }
+                }
+                assertEquals(15, rows);
+                assertEquals(15, dialed.size());
+                assertTrue(dialed.stream().allMatch(URI.create("tel:+46701234567")::equals));
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    @Test
     public void waitingAndSomedaySectionsShowEmptyMessages() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             Data original = DataLookup.instance().lookup(Data.class);

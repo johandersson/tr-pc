@@ -205,7 +205,7 @@ public class DashboardModelTest {
     }
 
     @Test
-    public void callsIncludesActiveCallsAcrossStatesAndIsCappedAndSortedByDueDate() {
+    public void callsIncludesAllUnfinishedCallsAcrossStatesAndStartDatesSortedByDueDate() {
         Data data = new Data();
         Context calls = data.getContextManager().list().stream()
                 .filter(context -> context.hasName("Calls")).findFirst().orElseThrow();
@@ -224,12 +224,35 @@ public class DashboardModelTest {
         }
 
         DashboardModel model = DashboardModel.build(data, date(NOW), 2);
-        assertEquals(1002, model.callsCount);
-        assertEquals(10, model.calls.size());
-        for (int i = 0; i < 10; i++) {
-            assertEquals("Call " + i, model.calls.get(i).getDescription());
+        assertEquals(1004, model.callsCount);
+        assertEquals(1004, model.calls.size());
+        assertEquals(List.of(future, inactive), model.calls.subList(0, 2));
+        for (int i = 0; i < 1000; i++) {
+            assertEquals("Call " + i, model.calls.get(i + 2).getDescription());
         }
-        assertFalse(model.calls.contains(undated));
+        assertTrue(model.calls.contains(undated));
+        assertTrue(model.calls.contains(scheduled));
+        assertFalse(model.calls.contains(done));
+        assertTrue(model.nextActions.isEmpty());
+        assertEquals(0, model.nextActionsCount);
+        assertEquals(1001, model.doAsapCount);
+    }
+
+    @Test
+    public void callsDoNotUseUpTheNextActionsLimitOrChangeDoAsapSummaryCount() {
+        Data data = new Data();
+        Context calls = data.getContextManager().list().stream()
+                .filter(context -> context.hasName("Calls")).findFirst().orElseThrow();
+        for (int i = 0; i < 20; i++) {
+            nextAction(data, calls, "Call " + i, null);
+            nextAction(data, Context.getDefault(), "Other " + i, null);
+        }
+        DashboardModel model = DashboardModel.build(data, date(NOW), 2);
+        assertEquals(40, model.doAsapCount);
+        assertEquals(20, model.nextActionsCount);
+        assertEquals(10, model.nextActions.size());
+        assertEquals(20, model.calls.size());
+        assertTrue(model.nextActions.stream().noneMatch(model.calls::contains));
     }
 
     @Test

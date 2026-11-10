@@ -192,7 +192,7 @@ public final class DashboardPanel extends JPanel {
     }
 
     private void nextActions(DashboardModel model) {
-        sectionHeader(msg("dashboard.next"), model.doAsapCount);
+        sectionHeader(msg("dashboard.next"), model.nextActionsCount);
         if (model.nextActions.isEmpty()) {
             add(text("<html><i>" + escape(msg("dashboard.next.none")) + "</i></html>"));
             return;
