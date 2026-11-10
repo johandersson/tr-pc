@@ -71,6 +71,8 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Bug fixes
 
+- Someday/Maybe Add and Edit dialogs now support Ctrl+S, with the shortcut
+  shown on their Add and OK buttons, matching the Thoughts dialog.
 - Calls are listed separately from Next actions without a ten-call limit,
   including inactive and future-start calls. Numbers in notes are shown as
   separate clickable telephone links.

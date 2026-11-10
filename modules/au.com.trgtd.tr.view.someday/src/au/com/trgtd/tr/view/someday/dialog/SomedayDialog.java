@@ -23,6 +23,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
+import java.awt.event.InputEvent;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -83,6 +84,9 @@ public class SomedayDialog extends JDialog {
         okButton.addActionListener((ActionEvent e) -> {
             ok();
         });
+        rp.registerKeyboardAction(e -> okButton.doClick(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK),
+                JComponent.WHEN_IN_FOCUSED_WINDOW);
         
         JPanel buttonsPanel = createButtonsPanel();
         
