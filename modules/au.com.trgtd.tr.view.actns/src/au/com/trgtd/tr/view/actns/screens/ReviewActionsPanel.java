@@ -50,6 +50,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -124,7 +125,14 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
 
         actionsEventList = new BasicEventList<>();
         actionsEventList.addAll(actionsList);
-        actionsFilterList = new FilterList<>(actionsEventList, filters.getMatcherEditor());
+        MatcherEditor<Action> matcherEditor = filters.getMatcherEditor();
+        // Apply restored filter values before the list is built so the tab
+        // shows the filtered actions and count from the start.
+        for (ActionsFilter filter : screen.getFilters()) {
+            filter.getFilterCombo().fireValueChange();
+        }
+        refreshedDay = LocalDate.now();
+        actionsFilterList = new FilterList<>(actionsEventList, matcherEditor);
         actionsFilterList.addListEventListener((ListEvent<Action> e) -> {
             itemCountShower.showItemCount(e.getSourceList().size());
             // fix problem of number of selected rows increasing by clearing
@@ -385,13 +393,17 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
         TableColumnModel tcm = table.getColumnModel();
         TableColumn tc;
 
-        // save column order and widths
+        // save column order and widths (widths only from a laid out table,
+        // otherwise collapsed widths are persisted and columns vanish)
+        boolean saveWidths = actionsTable.isShowing() && actionsTable.getWidth() > 0;
         byte[] order = new byte[tcm.getColumnCount()];
 
         for (int i = 0; i < tcm.getColumnCount(); i++) {
             tc = tcm.getColumn(i);
             order[i] = (byte) tc.getModelIndex();
-            screen.getColumns().get(tc.getModelIndex()).setWidth(tc.getWidth());
+            if (saveWidths) {
+                screen.getColumns().get(tc.getModelIndex()).setWidth(tc.getWidth());
+            }
         }
         screen.setColumnOrder(order);
 
@@ -498,7 +510,17 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
         });
     }
 
+    /**
+     * Restored filter values are not applied to the matchers until refresh()
+     * fires them, and relative date filters depend on the current day.
+     */
+    public boolean isRefreshNeeded() {
+        return !LocalDate.now().equals(refreshedDay);
+    }
+
     public void refresh() {
+
+        refreshedDay = LocalDate.now();
 
         final ListSelectionListener lsl = this;
 
@@ -585,4 +607,5 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
     private EventSelectionModel<Action> selectionModel;
     private TableComparatorChooser<Action> tableSorter;
     private long actionsRevision;
+    private LocalDate refreshedDay;
 }

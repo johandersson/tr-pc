@@ -212,6 +212,9 @@ public final class ReviewActionsTopComponent extends Window implements ActionsPr
         panel.clearSelection();
         if (!panel.isModelCurrent()) {
             panel.resetModel();
+            panel.refresh();
+        } else if (panel.isRefreshNeeded()) {
+            panel.refresh();
         }
         panel.startObserving();
         EventQueue.invokeLater(() -> {

@@ -214,6 +214,7 @@ public final class ActionsColumn extends ObservableImpl {
     
     private static final int MAX_WIDTH = Integer.MAX_VALUE;
     private static final int MIN_WIDTH = 1;
+    private static final int MIN_USABLE_WIDTH = 10;
     
 //  private static final int[] PRE_WIDTHS = { 17, 17, -1, -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, 17, -1, -1,  -1,  -1,  -1,  -1};
     private static final int[] PRE_WIDTHS = { 17, 17, 150, 150,  150,  150,  150, 150, 150, 150, 150, 150, 17, 150, 150,  150, 150, 150, 150, 150, 150, 150};
@@ -321,7 +322,8 @@ public final class ActionsColumn extends ObservableImpl {
     /** Gets the table column width. */
     public int getWidth() {
         if (isResizable()) {
-            return width;
+            // Widths saved from a collapsed table make the column unusable.
+            return (width < MIN_USABLE_WIDTH) ? getPreferredWidth() : width;
         } else {
             return getPreferredWidth();
         }

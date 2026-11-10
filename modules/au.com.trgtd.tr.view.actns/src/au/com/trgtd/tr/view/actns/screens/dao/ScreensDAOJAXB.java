@@ -143,8 +143,8 @@ final class ScreensDAOJAXB implements ScreensDAO {
         actionsScreens = toActionsScreens(screens);
     }
 
-    private Screens toXMLScreens(ActionsScreens actionScreens) {
-        if (actionsScreens == null) {
+    Screens toXMLScreens(ActionsScreens actionScreens) {
+        if (actionScreens == null) {
             return new Screens();
         }
         Screens screens = new Screens();
@@ -155,14 +155,19 @@ final class ScreensDAOJAXB implements ScreensDAO {
 
             Screen screen = new Screen(name);
 
-            // columns
+            // columns (visible columns missing from the order, e.g. defaults of
+            // a screen that has never been shown, must not be dropped)
+            List<Byte> written = new ArrayList<>();
             for (byte columnIndex : as.getColumnOrder()) {
+                written.add(columnIndex);
                 ActionsColumn ac = as.getColumns().get(columnIndex);
                 if (ac.isVisible()) {
-                    Column c = new Column();
-                    c.setColumnID(ColumnID.fromValue(ac.getColumnID()));
-                    c.setWidth(ac.getWidth());
-                    screen.getColumns().getColumns().add(c);
+                    screen.getColumns().getColumns().add(toXMLColumn(ac));
+                }
+            }
+            for (ActionsColumn ac : as.getColumns().list()) {
+                if (ac.isVisible() && !written.contains(ac.getColumnIndex())) {
+                    screen.getColumns().getColumns().add(toXMLColumn(ac));
                 }
             }
 
@@ -196,7 +201,14 @@ final class ScreensDAOJAXB implements ScreensDAO {
         return screens;
     }
 
-    private ActionsScreens toActionsScreens(Screens screens) {
+    private Column toXMLColumn(ActionsColumn ac) {
+        Column c = new Column();
+        c.setColumnID(ColumnID.fromValue(ac.getColumnID()));
+        c.setWidth(ac.getWidth());
+        return c;
+    }
+
+    ActionsScreens toActionsScreens(Screens screens) {
 
         ActionsScreens scrns = new ActionsScreens();
 
