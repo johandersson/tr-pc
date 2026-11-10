@@ -101,6 +101,15 @@ public class RAAction extends CallableSystemAction implements InitialAction {
      */
     @Override
     public void performAction() {
+        performAction(null);
+    }
+
+    /**
+     * Opens Review Actions and activates the requested screen, or the first
+     * configured screen when no key is supplied.
+     * @param screenKey the screen key, or null for the normal Review Actions entry
+     */
+    public void performAction(String screenKey) {
         EventQueue.invokeLater(() -> {
             Data data = DataLookup.instance().lookup(Data.class);
             if (data == null) {
@@ -114,21 +123,16 @@ public class RAAction extends CallableSystemAction implements InitialAction {
                 return;
             }
 
-//              boolean first = true;
-            TopComponent tcActions1 = null;
+            TopComponent selectedComponent = null;
 
             List<ActionsScreen> screens = ScreensDAOProvider.instance().provide().getData().getScreens().list();
+            ActionsScreen selectedScreen = selectScreen(screens, screenKey);
             for (ActionsScreen s : screens) {
                 TopComponent tc = ReviewActionsTopComponent.createInstance(s);
                 mode.dockInto(tc);
                 tc.open();
-//                  if (first) {
-//                        tc.requestActive();
-//                        first = false;
-//                    }
-                if (tcActions1 == null) {
-                    tcActions1 = tc;
-
+                if (s == selectedScreen) {
+                    selectedComponent = tc;
                 }
             }
 
@@ -158,11 +162,25 @@ public class RAAction extends CallableSystemAction implements InitialAction {
             tcSingleActions.open();
             tcEditor.open();
 
-            if (tcActions1 != null) {
-                tcActions1.requestActive();
-                tcActions1.requestVisible();
+            if (selectedComponent != null) {
+                selectedComponent.requestActive();
+                selectedComponent.requestVisible();
             }
         });
+    }
+
+    static ActionsScreen selectScreen(List<ActionsScreen> screens, String screenKey) {
+        if (screenKey != null) {
+            String displayName = ActionsScreen.DO_ASAP_KEY.equals(screenKey)
+                    ? NbBundle.getMessage(ActionsScreen.class, screenKey) : screenKey;
+            for (ActionsScreen screen : screens) {
+                if (screenKey.equals(screen.getKey()) || displayName.equals(screen.getKey())) {
+                    return screen;
+                }
+            }
+            LOG.warning("Requested Review Actions screen was not found: " + screenKey);
+        }
+        return screens.isEmpty() ? null : screens.get(0);
     }
 
     @Override

@@ -43,9 +43,6 @@ import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.ScrollPaneConstants;
-import org.openide.util.LookupListener;
-import tr.model.Data;
-import tr.model.DataLookup;
 
 /**
  * Top component which displays the overview screen.
@@ -64,8 +61,7 @@ public final class OverviewTopComponent extends Window {
     private final Overview overview;    
     private final JSVGCanvas canvas;
     private final DashboardPanel dashboard;
-    private final Lookup.Result<Data> dataResult = DataLookup.instance().lookupResult(Data.class);
-    private final LookupListener dataListener = e -> SwingUtilities.invokeLater(this::refreshDashboard);
+    private final DashboardRefresh dashboardRefresh;
     
     private OverviewTopComponent() {
         initComponents();
@@ -75,6 +71,7 @@ public final class OverviewTopComponent extends Window {
         overview = new Overview();
         canvas = overview.getSVGCanvas();
         dashboard = new DashboardPanel();
+        dashboardRefresh = new DashboardRefresh(this::isShowing, dashboard::refresh);
         JScrollPane dashboardScroll = new JScrollPane(dashboard,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -131,8 +128,8 @@ public final class OverviewTopComponent extends Window {
             
     @Override
     public void removeNotify() {
-        super.removeNotify();        
-        removeListeners();        
+        removeListeners();
+        super.removeNotify();
     }
 
     private Observer observer;    
@@ -146,12 +143,12 @@ public final class OverviewTopComponent extends Window {
             }
         };
         overview.addObserver(observer);        
-        dataResult.addLookupListener(dataListener);
+        dashboardRefresh.start();
     }
 
     private void removeListeners() {        
         overview.removeObserver(observer);        
-        dataResult.removeLookupListener(dataListener);
+        dashboardRefresh.stop();
     }
     
     private void switchScreen(Screen screen) {        
@@ -193,14 +190,15 @@ public final class OverviewTopComponent extends Window {
         refresh();
     }
 
+    @Override
+    public void componentShowing() {
+        refresh();
+    }
+
     /* Refreshes the window. */
     public void refresh() {
         canvas.setSize(1,1); // stops image being positioned at lower right
-        refreshDashboard();
-    }
-
-    private void refreshDashboard() {
-        dashboard.refresh();
+        dashboardRefresh.refresh();
     }
 
     @Override

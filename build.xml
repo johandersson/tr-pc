@@ -100,7 +100,7 @@
             <and>
                 <equals arg1="${windows.jdk.verified.sha256}" arg2="${windows-jdk-sha256}"/>
                 <available file="${windows.jdk.dir}/bin/jlink.exe"/>
-                <available file="${windows.jdk.dir}/jmods/java.base.jmod"/>
+                <available file="${windows.jdk.dir}/lib/modules"/>
             </and>
         </condition>
     </target>
@@ -170,7 +170,7 @@
             <and>
                 <equals arg1="${linux.jdk.verified.sha256}" arg2="${linux-jdk-sha256}"/>
                 <available file="${linux.jdk.dir}/bin/jlink"/>
-                <available file="${linux.jdk.dir}/jmods/java.base.jmod"/>
+                <available file="${linux.jdk.dir}/lib/modules"/>
             </and>
         </condition>
     </target>

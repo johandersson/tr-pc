@@ -9,18 +9,24 @@ allprojects {
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(libs.versions.java.get())
-    }
+    sourceCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+    targetCompatibility = sourceCompatibility
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(libs.versions.java.get().toInt())
 }
 
 subprojects {
     apply(plugin = "java")
 
     java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(rootProject.libs.versions.java.get())
-        }
+        sourceCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get())
+        targetCompatibility = sourceCompatibility
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        options.release.set(rootProject.libs.versions.java.get().toInt())
     }
 
     repositories {

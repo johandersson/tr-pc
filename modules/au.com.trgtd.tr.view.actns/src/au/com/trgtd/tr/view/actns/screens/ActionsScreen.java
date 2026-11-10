@@ -40,6 +40,8 @@ public class ActionsScreen extends ObservableImpl implements Observable, Observe
     
 //    private static final byte VERSION = 1;
 //
+    public static final String DO_ASAP_KEY = "screen-do-asap";
+
     private String key;             // bundle key or display name
     private byte[] columnOrder;
     private byte[] sortColumns;

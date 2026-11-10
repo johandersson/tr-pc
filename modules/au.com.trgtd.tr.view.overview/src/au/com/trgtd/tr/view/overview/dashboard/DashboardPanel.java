@@ -19,6 +19,7 @@ package au.com.trgtd.tr.view.overview.dashboard;
 
 import au.com.trgtd.tr.util.DateUtils;
 import au.com.trgtd.tr.view.actns.RAAction;
+import au.com.trgtd.tr.view.actns.screens.ActionsScreen;
 import au.com.trgtd.tr.view.collect.AddThoughtsAction;
 import au.com.trgtd.tr.view.overview.dashboard.DashboardModel.ProjectInfo;
 import au.com.trgtd.tr.view.process.ProcessThoughtsAction;
@@ -98,7 +99,12 @@ public final class DashboardPanel extends JPanel {
         JPanel summary = row();
         summary.add(link(msg("dashboard.inbox", model.inboxCount), () -> perform(ProcessThoughtsAction.class)));
         summary.add(text("   "));
-        summary.add(link(msg("dashboard.doasap", model.doAsapCount), () -> perform(RAAction.class)));
+        summary.add(link(msg("dashboard.doasap", model.doAsapCount), () -> {
+            RAAction action = SystemAction.get(RAAction.class);
+            if (action.isEnabled()) {
+                action.performAction(ActionsScreen.DO_ASAP_KEY);
+            }
+        }));
         summary.add(text("   "));
         summary.add(link(msg("dashboard.capture"), () -> perform(AddThoughtsAction.class)));
         summary.add(text("   "));

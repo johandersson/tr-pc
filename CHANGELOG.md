@@ -31,6 +31,11 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Improvements
 
+- **Dashboard auto-refresh.** Visible dashboards update after thought capture
+  and project/action changes, with rapid updates batched together and no polling.
+  Returning to the dashboard refreshes it again.
+- **Ctrl+S in Add/Edit Thought.** The shortcut performs the same action as the
+  Add/OK button, including validation; Add keeps the capture window open.
 - **Runs on Java 27 and NetBeans Platform 31.** Unused NetBeans Platform
   modules were removed.
 - **Much faster startup**, especially on Windows. Previously the module jars
@@ -52,6 +57,14 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Bug fixes
 
+- The dashboard's Do ASAP link now selects the Do ASAP tab instead of the
+  first Review Actions tab.
+- Normalized the Ctrl+Shift+N shortcut registration and added coverage for
+  both thought-capture shortcuts.
+- Gradle builds use the current JDK (21 or newer) instead of requiring a
+  separate JDK 21 installation, while retaining Java 21 compatibility.
+- Self-contained packaging recognizes cached modern JDKs without a `jmods`
+  directory, avoiding unnecessary re-extraction of the build's own JDK.
 - Review Actions tabs (Do ASAP, Done and others) showed actions that should
   have been filtered out, and their counts changed after loading. They now
   show the correct actions from the start.

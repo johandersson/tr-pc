@@ -162,7 +162,7 @@ public final class ActionsScreens {
         screens.add(screen);
 
         // Do ASAP
-        screen = ActionsScreen.create("screen-do-asap");
+        screen = ActionsScreen.create(ActionsScreen.DO_ASAP_KEY);
         screen.setShowFilters(true);
         screen.getColumns().get(ActionsColumn.INDEX_ICON).setVisible(true);
         screen.getColumns().get(ActionsColumn.INDEX_DESCR).setVisible(true);
@@ -386,4 +386,3 @@ public final class ActionsScreens {
     }
     
 }
-

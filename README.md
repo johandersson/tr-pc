@@ -37,6 +37,9 @@ The build downloads and verifies the pinned NetBeans Platform automatically.
 It also restores the JavaHelp runtime omitted from the Apache binary distribution,
 so Contextual Help and F1 work without installing additional libraries.
 Gradle is provided by the included wrapper.
+Ant and Gradle use the JDK running the build and target Java 21 bytecode.
+JDK 25 or newer does not require a separate JDK 21 installation. For UI tests,
+use a full desktop JDK and a graphical display, not a headless-only JDK.
 
 ## Build distributions
 
