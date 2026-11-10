@@ -41,6 +41,8 @@ ThinkingRock. See [LICENSE](LICENSE).
   scheduled events are looked up by day instead of rescanning every action.
 - **Contextual help (F1) works again.** The JavaHelp runtime, which the
   Apache NetBeans binaries omit, is restored.
+- **Ctrl+Shift+N captures a thought** from anywhere in the application, as
+  an alternative to F6.
 - **No startup pop-up from the original ThinkingRock web server.** The
   automatic check for upstream versions and website messages is disabled,
   because it does not apply to this fork.
