@@ -10,6 +10,9 @@
     <property name="windows.jdk.archive" location="${windows.jdk.cache.dir}/${windows-jdk-archive-name}"/>
     <property name="windows.jdk.dir" location="netbeans-plat/windows-jdk-${windows-jdk-version}"/>
     <property name="windows.runtime.stage.dir" location="build/windows-x64"/>
+    <property name="linux.jdk.archive" location="${windows.jdk.cache.dir}/${linux-jdk-archive-name}"/>
+    <property name="linux.jdk.dir" location="netbeans-plat/linux-jdk-${linux-jdk-version}"/>
+    <property name="linux.runtime.stage.dir" location="build/linux-x64"/>
     <property name="rcedit.file" location="netbeans-plat/downloads/rcedit-x64.exe"/>
     <property name="windows.app.icon" location="nbproject/trgtd.ico"/>
 
@@ -153,6 +156,99 @@
             <zipfileset dir="${windows.runtime.stage.dir}"/>
         </zip>
         <echo>Created self-contained Windows package: ${dist.dir}/${app.name}-windows-x64.zip</echo>
+    </target>
+
+    <target name="-check-linux-jdk">
+        <loadfile property="linux.jdk.verified.sha256"
+                  srcFile="${linux.jdk.dir}/.verified-distribution"
+                  failonerror="false">
+            <filterchain>
+                <striplinebreaks/>
+            </filterchain>
+        </loadfile>
+        <condition property="linux.jdk.ready">
+            <and>
+                <equals arg1="${linux.jdk.verified.sha256}" arg2="${linux-jdk-sha256}"/>
+                <available file="${linux.jdk.dir}/bin/jlink"/>
+                <available file="${linux.jdk.dir}/jmods/java.base.jmod"/>
+            </and>
+        </condition>
+    </target>
+
+    <target name="-prepare-linux-jdk" depends="-check-linux-jdk" unless="linux.jdk.ready">
+        <mkdir dir="${windows.jdk.cache.dir}"/>
+        <get src="${linux-jdk-url}" dest="${linux.jdk.archive}" skipexisting="true"/>
+        <checksum file="${linux.jdk.archive}" algorithm="SHA-256" property="linux.jdk.actual.sha256"/>
+        <condition property="linux.jdk.checksum.valid">
+            <equals arg1="${linux.jdk.actual.sha256}" arg2="${linux-jdk-sha256}"/>
+        </condition>
+        <fail message="Linux JDK SHA-256 mismatch. Delete ${linux.jdk.archive}, then retry.">
+            <condition><not><istrue value="${linux.jdk.checksum.valid}"/></not></condition>
+        </fail>
+        <delete dir="${linux.jdk.dir}"/>
+        <mkdir dir="${linux.jdk.dir}"/>
+        <!-- Native tar keeps the executable bits that Ant's untar drops. -->
+        <exec executable="tar" failonerror="true">
+            <arg value="-xzf"/>
+            <arg file="${linux.jdk.archive}"/>
+            <arg value="-C"/>
+            <arg file="${linux.jdk.dir}"/>
+            <arg value="--strip-components=1"/>
+        </exec>
+        <echo file="${linux.jdk.dir}/.verified-distribution">${linux-jdk-sha256}</echo>
+    </target>
+
+    <target name="build-linux-self-contained"
+            depends="build-zip,-prepare-linux-jdk"
+            description="Builds a Linux x64 tar.gz with a stripped private Java runtime.">
+        <property name="linux.runtime.image.dir"
+                  location="${linux.runtime.stage.dir}/${app.name}/runtime"/>
+        <delete dir="${linux.runtime.stage.dir}"/>
+        <mkdir dir="${linux.runtime.stage.dir}"/>
+        <exec executable="unzip" failonerror="true">
+            <arg value="-q"/>
+            <arg file="${dist.dir}/${app.name}.zip"/>
+            <arg value="-d"/>
+            <arg file="${linux.runtime.stage.dir}"/>
+        </exec>
+        <chmod file="${linux.runtime.stage.dir}/${app.name}/bin/${app.name}" perm="755"/>
+        <exec executable="${linux.jdk.dir}/bin/jlink" failonerror="true">
+            <arg value="--module-path"/>
+            <arg file="${linux.jdk.dir}/jmods"/>
+            <arg value="--add-modules"/>
+            <arg value="${linux-runtime-modules}"/>
+            <arg value="--output"/>
+            <arg file="${linux.runtime.image.dir}"/>
+            <arg value="--strip-debug"/>
+            <arg value="--no-header-files"/>
+            <arg value="--no-man-pages"/>
+            <arg value="--compress"/>
+            <arg value="zip-6"/>
+            <arg value="--include-locales"/>
+            <arg value="en,de,es,fr,nl"/>
+        </exec>
+        <fail message="The Linux runtime is incomplete: java or libawt_xawt.so is missing.">
+            <condition>
+                <not>
+                    <and>
+                        <available file="${linux.runtime.image.dir}/bin/java"/>
+                        <available file="${linux.runtime.image.dir}/lib/libawt_xawt.so"/>
+                    </and>
+                </not>
+            </condition>
+        </fail>
+        <echo file="${linux.runtime.stage.dir}/${app.name}/etc/${app.name}.conf"
+              append="true">jdkhome="runtime"
+</echo>
+        <delete file="${dist.dir}/${app.name}-linux-x64.tar.gz"/>
+        <exec executable="tar" failonerror="true">
+            <arg value="-czf"/>
+            <arg file="${dist.dir}/${app.name}-linux-x64.tar.gz"/>
+            <arg value="-C"/>
+            <arg file="${linux.runtime.stage.dir}"/>
+            <arg value="${app.name}"/>
+        </exec>
+        <echo>Created self-contained Linux package: ${dist.dir}/${app.name}-linux-x64.tar.gz</echo>
     </target>
 
     <target name="run-dev" depends="build" description="Runs ThinkingRock without the NetBeans IDE. Back up production data first.">

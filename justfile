@@ -17,6 +17,10 @@ build-zip:
 build-windows-self-contained:
     ant build-windows-self-contained
 
+# Creates a Linux x64 package with a private stripped Java runtime
+build-linux-self-contained:
+    ant build-linux-self-contained
+
 # Verifies modules with headless tests
 verify-headless *args:
     ./gradlew -p gradle check {{args}}

@@ -56,8 +56,29 @@ checksum, and uses its native `jlink.exe` through PowerShell to include only
 the required Java modules. Run this target from Windows or WSL with PowerShell
 available.
 
-Equivalent `just` commands are `just build-zip` and
-`just build-windows-self-contained`.
+### Self-contained Linux package
+
+```shell
+ant build-linux-self-contained
+```
+
+Output: `dist/trgtd-linux-x64.tar.gz`
+
+This is the recommended Linux distribution. Like the Windows package it
+includes a stripped Java 27 runtime, so users do **not** need to install Java.
+Extract it with `tar xzf trgtd-linux-x64.tar.gz` and start:
+
+```text
+trgtd/bin/trgtd
+```
+
+The build downloads a pinned Eclipse Temurin Linux JDK, verifies its SHA-256
+checksum, and runs its `jlink` with the same module list as the Windows
+package. Run this target on Linux (including WSL) with `tar` and `unzip`
+available.
+
+Equivalent `just` commands are `just build-zip`,
+`just build-windows-self-contained` and `just build-linux-self-contained`.
 
 ## Tests
 
