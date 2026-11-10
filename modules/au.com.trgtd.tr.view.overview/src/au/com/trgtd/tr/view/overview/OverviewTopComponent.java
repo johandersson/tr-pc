@@ -37,7 +37,15 @@ import au.com.trgtd.tr.util.Utils;
 import au.com.trgtd.tr.view.Window;
 import au.com.trgtd.tr.view.overview.Overview.Screen;
 import au.com.trgtd.tr.view.overview.spi.OverviewSVGProvider;
+import au.com.trgtd.tr.view.overview.dashboard.DashboardPanel;
 import java.util.logging.Level;
+import javax.swing.BorderFactory;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.ScrollPaneConstants;
+import org.openide.util.LookupListener;
+import tr.model.Data;
+import tr.model.DataLookup;
 
 /**
  * Top component which displays the overview screen.
@@ -55,6 +63,9 @@ public final class OverviewTopComponent extends Window {
             = Lookup.getDefault().lookupResult(OverviewSVGProvider.class);
     private final Overview overview;    
     private final JSVGCanvas canvas;
+    private final DashboardPanel dashboard;
+    private final Lookup.Result<Data> dataResult = DataLookup.instance().lookupResult(Data.class);
+    private final LookupListener dataListener = e -> SwingUtilities.invokeLater(this::refreshDashboard);
     
     private OverviewTopComponent() {
         initComponents();
@@ -63,7 +74,16 @@ public final class OverviewTopComponent extends Window {
         setIcon(Icons.Overview.getImage());            
         overview = new Overview();
         canvas = overview.getSVGCanvas();
-        add(canvas, BorderLayout.CENTER);
+        dashboard = new DashboardPanel();
+        JScrollPane dashboardScroll = new JScrollPane(dashboard,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        dashboardScroll.setBorder(BorderFactory.createEmptyBorder());
+        dashboardScroll.getVerticalScrollBar().setUnitIncrement(16);
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, canvas, dashboardScroll);
+        split.setResizeWeight(0.6);
+        split.setBorder(BorderFactory.createEmptyBorder());
+        add(split, BorderLayout.CENTER);
 //      canvas.setURI(Resource.getOverviewURL().toExternalForm());
         canvas.setURI(getURL().toExternalForm());
         canvas.setSize(1,1); // stops image being positioned at lower right
@@ -126,10 +146,12 @@ public final class OverviewTopComponent extends Window {
             }
         };
         overview.addObserver(observer);        
+        dataResult.addLookupListener(dataListener);
     }
 
     private void removeListeners() {        
         overview.removeObserver(observer);        
+        dataResult.removeLookupListener(dataListener);
     }
     
     private void switchScreen(Screen screen) {        
@@ -174,6 +196,11 @@ public final class OverviewTopComponent extends Window {
     /* Refreshes the window. */
     public void refresh() {
         canvas.setSize(1,1); // stops image being positioned at lower right
+        refreshDashboard();
+    }
+
+    private void refreshDashboard() {
+        dashboard.refresh();
     }
 
     @Override
