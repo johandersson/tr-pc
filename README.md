@@ -27,6 +27,11 @@ Main changes in 2026:
 
 See [CHANGELOG.md](CHANGELOG.md) for all important changes.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, validation
+commands, and issue and pull request guidance.
+
 ## Build requirements
 
 - JDK 21 or newer with `JAVA_HOME` and `PATH` configured (JDK 27 is tested)

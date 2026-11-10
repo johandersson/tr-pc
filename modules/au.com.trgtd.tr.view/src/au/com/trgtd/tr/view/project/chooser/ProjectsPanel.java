@@ -32,11 +32,17 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Vector;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -61,6 +67,11 @@ public class ProjectsPanel extends JPanel {
     private Map<Integer, Boolean> mapProjectSorts;    
     private Map<Integer, Boolean> mapFutureSorts;
     private final boolean currentOnly;
+    private JTextField projectSearch;
+    private JTextField futureSearch;
+    private final Map<JTree, TreeState> unfilteredStates = new HashMap<>();
+
+    private record TreeState(List<Integer> expanded, Project selected, boolean rootSelected) {}
     
     /** Creates new form ProjectsPanel */
     public ProjectsPanel() {
@@ -76,6 +87,103 @@ public class ProjectsPanel extends JPanel {
         }
         mapProjectSorts = new HashMap<>();
         mapFutureSorts = new HashMap<>();
+        projectSearch = addSearch(projectsToolBar, projectsTree, false);
+        futureSearch = addSearch(futureToolBar, futureTree, true);
+    }
+
+    private JTextField addSearch(JToolBar toolbar, JTree tree, boolean future) {
+        JTextField search = new JTextField(18);
+        String text = NbBundle.getMessage(CLASS, "search.projects");
+        JLabel label = new JLabel(text);
+        label.setLabelFor(search);
+        search.setToolTipText(NbBundle.getMessage(CLASS, "search.projects.tooltip"));
+        search.getAccessibleContext().setAccessibleName(text);
+        toolbar.addSeparator();
+        toolbar.add(label);
+        toolbar.add(search);
+        search.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { filter(); }
+            public void removeUpdate(DocumentEvent e) { filter(); }
+            public void changedUpdate(DocumentEvent e) { filter(); }
+            private void filter() {
+                filterTree(tree, search.getText().strip().toLowerCase(Locale.ROOT), future);
+            }
+        });
+        return search;
+    }
+
+    private void filterTree(JTree tree, String query, boolean future) {
+        TreeState selected = captureState(tree);
+        if (!query.isEmpty()) {
+            unfilteredStates.putIfAbsent(tree, selected);
+        }
+        Data data = DataLookup.instance().lookup(Data.class);
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+        root.removeAllChildren();
+        if (data != null) {
+            createNodes(root, future ? data.getRootFutures() : data.getRootProjects(), query);
+        }
+        refreshSorts(future ? mapFutureSorts : mapProjectSorts, tree);
+        ((DefaultTreeModel) tree.getModel()).reload();
+        if (query.isEmpty()) {
+            TreeState previous = unfilteredStates.remove(tree);
+            restoreState(tree, previous == null ? selected : previous);
+        } else {
+            expand(root, tree);
+            selectNode(tree, selected.selected(), selected.rootSelected());
+        }
+    }
+
+    private TreeState captureState(JTree tree) {
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+        List<Integer> expanded = new ArrayList<>();
+        Enumeration<TreePath> paths = tree.getExpandedDescendants(new TreePath(root.getPath()));
+        if (paths != null) {
+            while (paths.hasMoreElements()) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) paths.nextElement().getLastPathComponent();
+                expanded.add(node.getUserObject() instanceof Project p ? p.getID() : 0);
+            }
+        }
+        DefaultMutableTreeNode selected = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+        return new TreeState(expanded,
+                selected != null && selected.getUserObject() instanceof Project p ? p : null, selected == root);
+    }
+
+    private void restoreState(JTree tree, TreeState state) {
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+        collapse(root, tree);
+        for (int id : state.expanded()) {
+            DefaultMutableTreeNode node = id == 0 ? root : findNode(id, root);
+            if (node != null) {
+                tree.expandPath(new TreePath(node.getPath()));
+            }
+        }
+        selectNode(tree, state.selected(), state.rootSelected());
+    }
+
+    private void selectNode(JTree tree, Project project, boolean rootSelected) {
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+        DefaultMutableTreeNode node = project == null ? (rootSelected ? root : null) : findNode(project.getID(), root);
+        if (node != null) {
+            tree.setSelectionPath(new TreePath(node.getPath()));
+        } else {
+            tree.clearSelection();
+        }
+    }
+
+    int getPreferredChooserWidth() {
+        int width = 600;
+        for (JTree tree : currentOnly ? List.of(projectsTree) : List.of(projectsTree, futureTree)) {
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+            Enumeration<?> nodes = root.preorderEnumeration();
+            while (nodes.hasMoreElements()) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodes.nextElement();
+                int labelWidth = tree.getCellRenderer().getTreeCellRendererComponent(
+                        tree, node, false, false, node.isLeaf(), 0, false).getPreferredSize().width;
+                width = Math.max(width, labelWidth + node.getLevel() * 24 + 120);
+            }
+        }
+        return width;
     }
 
     private JToolBar getProjectsToolbar() {
@@ -256,20 +364,24 @@ public class ProjectsPanel extends JPanel {
     }
     
     public void refreshModel() {
+        projectSearch.setText("");
+        futureSearch.setText("");
+        unfilteredStates.clear();
         Data data = DataLookup.instance().lookup(Data.class);
-        if (data == null) {
-            return;
-        }                
         DefaultMutableTreeNode top;
         top = (DefaultMutableTreeNode)projectsTree.getModel().getRoot();
         top.removeAllChildren();                
-        createNodes(top, data.getRootProjects());                
+        if (data != null) {
+            createNodes(top, data.getRootProjects());
+        }
         refreshSorts(mapProjectSorts, projectsTree);        
         ((DefaultTreeModel)projectsTree.getModel()).reload(top);
 
         top = (DefaultMutableTreeNode)futureTree.getModel().getRoot();
         top.removeAllChildren();        
-        createNodes(top, data.getRootFutures());                
+        if (data != null) {
+            createNodes(top, data.getRootFutures());
+        }
         refreshSorts(mapFutureSorts, futureTree);        
         ((DefaultTreeModel)futureTree.getModel()).reload(top);             
     }
@@ -337,12 +449,12 @@ public class ProjectsPanel extends JPanel {
 
     private JTree getFutureProjectsTree() {
         Data data = DataLookup.instance().lookup(Data.class);
-        if (data == null) {
-            return null;
-        }
         DefaultMutableTreeNode top = new DefaultMutableTreeNode(NbBundle.getMessage(CLASS, "future.projects"));
-        createNodes(top, data.getRootFutures());
+        if (data != null) {
+            createNodes(top, data.getRootFutures());
+        }
         final JTree tree = new JTree(top);
+        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         tree.setCellRenderer(new ProjectTreeCellRenderer(Icons.ProjectFuture, Icons.ProjectFutureOpen));
         tree.setRootVisible(true);
         tree.setShowsRootHandles(true);        
@@ -381,11 +493,18 @@ public class ProjectsPanel extends JPanel {
     }
 
     private void createNodes(DefaultMutableTreeNode node, Project project) {
+        createNodes(node, project, "");
+    }
+
+    private void createNodes(DefaultMutableTreeNode node, Project project, String query) {
         for (Project subProject : project.getChildren(Project.class)) {
             if (!subProject.isDone()) {
                 DefaultMutableTreeNode subNode = new DefaultMutableTreeNode(subProject);
-                createNodes(subNode, subProject);
-                node.add(subNode);                
+                boolean matches = subProject.getDescription().toLowerCase(Locale.ROOT).contains(query);
+                createNodes(subNode, subProject, matches ? "" : query);
+                if (matches || subNode.getChildCount() > 0) {
+                    node.add(subNode);
+                }
             }
         }
     }

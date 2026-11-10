@@ -36,10 +36,13 @@
 
     <target name="-detect-windows-resource-editor">
         <condition property="windows.resource.editor.supported">
-            <or>
-                <os family="windows"/>
-                <available file="/proc/sys/fs/binfmt_misc/WSLInterop"/>
-            </or>
+            <and>
+                <not><isset property="linux.standalone.build"/></not>
+                <or>
+                    <os family="windows"/>
+                    <available file="/proc/sys/fs/binfmt_misc/WSLInterop"/>
+                </or>
+            </and>
         </condition>
     </target>
 
@@ -198,8 +201,12 @@
         <echo file="${linux.jdk.dir}/.verified-distribution">${linux-jdk-sha256}</echo>
     </target>
 
+    <target name="-configure-linux-standalone">
+        <property name="linux.standalone.build" value="true"/>
+    </target>
+
     <target name="build-linux-self-contained"
-            depends="build-zip,-prepare-linux-jdk"
+            depends="-configure-linux-standalone,build-zip,-prepare-linux-jdk"
             description="Builds a Linux x64 tar.gz with a stripped private Java runtime.">
         <property name="linux.runtime.image.dir"
                   location="${linux.runtime.stage.dir}/${app.name}/runtime"/>

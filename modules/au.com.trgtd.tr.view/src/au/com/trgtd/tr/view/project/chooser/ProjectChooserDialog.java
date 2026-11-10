@@ -23,6 +23,10 @@ import java.awt.Container;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.GraphicsConfiguration;
+import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -50,6 +54,7 @@ public class ProjectChooserDialog extends JDialog implements ActionListener {
     private boolean okay;
     private boolean cancel;
     private boolean currentOnly;
+    private boolean initialSizeSet;
     
     private void construct() {
         // Escape key to cancel
@@ -203,12 +208,29 @@ public class ProjectChooserDialog extends JDialog implements ActionListener {
     public Project select(Project project, Component component) {
         okay = false;
         cancel = false;
-        if (component != null) {
-            setLocationRelativeTo(component);
-        }
 
         panel.refreshModel();
         panel.setSelected(project);
+        GraphicsConfiguration configuration = component == null
+                ? getGraphicsConfiguration() : component.getGraphicsConfiguration();
+        if (configuration == null) {
+            configuration = getGraphicsConfiguration();
+        }
+        Rectangle usable = new Rectangle(configuration.getBounds());
+        Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(configuration);
+        usable.x += insets.left;
+        usable.y += insets.top;
+        usable.width -= insets.left + insets.right;
+        usable.height -= insets.top + insets.bottom;
+        if (!initialSizeSet) {
+            int ownerWidth = getOwner() == null ? 0 : getOwner().getWidth();
+            setSize(fitSize(new Dimension(Math.max(ownerWidth, panel.getPreferredChooserWidth()),
+                    Math.max(600, usable.height * 3 / 4)), usable));
+            initialSizeSet = true;
+        }
+        setLocationRelativeTo(component == null ? getOwner() : component);
+        setLocation(Math.max(usable.x, Math.min(getX(), usable.x + usable.width - getWidth())),
+                Math.max(usable.y, Math.min(getY(), usable.y + usable.height - getHeight())));
 
         setVisible(true);
         
@@ -217,6 +239,11 @@ public class ProjectChooserDialog extends JDialog implements ActionListener {
         }
   
         return panel.getSelected();
+    }
+
+    static Dimension fitSize(Dimension preferred, Rectangle usableScreen) {
+        return new Dimension(Math.min(Math.max(600, preferred.width), Math.max(1, usableScreen.width - 40)),
+                Math.min(Math.max(400, preferred.height), Math.max(1, usableScreen.height - 40)));
     }
 
     /**

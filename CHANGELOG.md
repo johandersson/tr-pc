@@ -14,6 +14,11 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### New features
 
+- Project choosers now search current and future project names, including
+  collapsed sub-projects, and adapt their initial size to project titles,
+  the owner window and available screen space.
+- Restored the View menu with application log and toolbar controls, without
+  unrelated editor and split-window commands.
 - **Dashboard Waiting For and Someday/Maybe sections.** Waiting For includes
   available Waiting For context actions and delegated actions, even without
   a follow-up date. Someday/Maybe reads its existing records directly and
@@ -71,6 +76,8 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Bug fixes
 
+- Standalone Linux packaging no longer invokes Windows icon-branding tools
+  under WSL, so a Windows interoperability outage cannot block the Linux build.
 - Someday/Maybe Add and Edit dialogs now support Ctrl+S, with the shortcut
   shown on their Add and OK buttons, matching the Thoughts dialog.
 - Calls are listed separately from Next actions without a ten-call limit,
