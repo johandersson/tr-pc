@@ -44,7 +44,8 @@ public class DateCombo extends TRComboBox<DateItem> implements ActionListener {
     private final boolean calc;
     private final DateFormat df;
     private final DateItem chosen;
-    private final DateChooser dateChooser;
+    private final Window window;
+    private DateChooser dateChooser;
     
     /**
      * Constructs a new instance for the given data model.
@@ -58,13 +59,7 @@ public class DateCombo extends TRComboBox<DateItem> implements ActionListener {
         super(new DefaultComboBoxModel<>(items));
         this.calc = calc;
         this.df = df;
-        if (window instanceof Frame frame) {
-            dateChooser = new DateChooser(frame);
-        } else if (window instanceof Dialog dialog) {
-            dateChooser = new DateChooser(dialog);
-        } else {
-            dateChooser = new DateChooser(new Frame());                        
-        }
+        this.window = window;
         chosen = new DateItem(DateType.NONE, "", 0);
         insertItemAt(chosen, 0);
         setMaximumRowCount(items.length + 1);
@@ -89,7 +84,7 @@ public class DateCombo extends TRComboBox<DateItem> implements ActionListener {
             return;
         }
         if (item == DateItem.DATE_CHOOSER) {
-            DateChooserDialog dialog = dateChooser.getDialog();
+            DateChooserDialog dialog = getDateChooser().getDialog();
             Date date;
             if (chosen.equals(DateItem.EARLIEST) || chosen.equals(DateItem.LATEST)) {
                 date = dialog.select(null, this);
@@ -136,6 +131,19 @@ public class DateCombo extends TRComboBox<DateItem> implements ActionListener {
         setSelectedIndex(0);
         
         fireValueChange();
+    }
+
+    private DateChooser getDateChooser() {
+        if (dateChooser == null) {
+            if (window instanceof Frame frame) {
+                dateChooser = new DateChooser(frame);
+            } else if (window instanceof Dialog dialog) {
+                dateChooser = new DateChooser(dialog);
+            } else {
+                dateChooser = new DateChooser(new Frame());
+            }
+        }
+        return dateChooser;
     }
     
     public void fireValueChange() {
