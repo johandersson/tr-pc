@@ -2,6 +2,8 @@
 
 <project name="ThinkingRock" basedir=".">
     <description>Builds trgtd distributions.</description>
+    <property file="nbproject/private/platform-private.properties"/>
+    <property file="${user.properties.file}"/>
     <property file="nbproject/platform.properties"/>
     <ant antfile="nbproject/platform.xml" target="prepare"/>
     <import file="nbproject/build-impl.xml"/>

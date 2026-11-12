@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="platform" default="prepare" basedir="..">
+    <property file="nbproject/private/platform-private.properties"/>
+    <property file="${user.properties.file}"/>
     <property file="nbproject/platform.properties"/>
     <property name="platform.cache.dir" location="netbeans-plat/downloads"/>
     <property name="platform.archive" location="${platform.cache.dir}/netbeans-${netbeans-plat-version}-bin.zip"/>
+    <macrodef name="platform-property">
+        <attribute name="name"/>
+        <attribute name="value"/>
+        <sequential>
+            <property name="@{name}" value="${@{value}}"/>
+        </sequential>
+    </macrodef>
+    <platform-property name="installed.netbeans.dir"
+                       value="nbplatform.${nbplatform.active}.netbeans.dest.dir"/>
     <property name="javahelp.runtime.archive" location="${platform.cache.dir}/jhall-2.0_05.jar"/>
     <property name="javahelp.license.file" location="${platform.cache.dir}/jhall-2.0_05-license.txt"/>
     <property name="javahelp.module.jar" location="${nbplatform.active.dir}/platform/modules/org-netbeans-modules-javahelp.jar"/>
@@ -37,9 +48,22 @@
                 </tokenfilter>
             </filterchain>
         </loadfile>
+        <loadfile property="platform.installed.version"
+                  srcFile="${nbplatform.active.dir}/.installed-platform-version"
+                  failonerror="false">
+            <filterchain>
+                <striplinebreaks/>
+                <tokenfilter>
+                    <trim/>
+                </tokenfilter>
+            </filterchain>
+        </loadfile>
         <condition property="platform.ready">
             <and>
-                <equals arg1="${platform.verified.sha512}" arg2="${netbeans.distribution.sha512}"/>
+                <or>
+                    <equals arg1="${platform.verified.sha512}" arg2="${netbeans.distribution.sha512}"/>
+                    <equals arg1="${platform.installed.version}" arg2="${netbeans-plat-version}"/>
+                </or>
                 <available file="${harness.dir}/suite.xml"/>
                 <available file="${nbplatform.active.dir}/platform/core/core.jar"/>
                 <available file="${nbplatform.active.dir}/ide/modules/org-netbeans-modules-projectapi-nb.jar"/>
@@ -47,7 +71,68 @@
         </condition>
     </target>
 
-    <target name="download" depends="check-platform" unless="platform.ready">
+    <target name="-check-installed-platform" depends="check-toolchain">
+        <condition property="installed.platform.available">
+            <and>
+                <available file="${installed.netbeans.dir}/harness/suite.xml"/>
+                <available file="${installed.netbeans.dir}/platform/core/core.jar"/>
+                <available file="${installed.netbeans.dir}/ide/modules/org-netbeans-modules-projectapi-nb.jar"/>
+            </and>
+        </condition>
+    </target>
+
+    <target name="-verify-installed-platform" depends="-check-installed-platform"
+            if="installed.platform.available" unless="platform.ready">
+        <mkdir dir="build/netbeans-platform-check"/>
+        <unzip src="${installed.netbeans.dir}/platform/core/core.jar"
+               dest="build/netbeans-platform-check">
+            <patternset>
+                <include name="META-INF/MANIFEST.MF"/>
+            </patternset>
+        </unzip>
+        <loadfile property="installed.platform.core.manifest"
+                  srcFile="build/netbeans-platform-check/META-INF/MANIFEST.MF"/>
+        <condition property="installed.platform.ready">
+            <contains string="${installed.platform.core.manifest}"
+                      substring="OpenIDE-Module-Implementation-Version: ${netbeans-plat-version}-"/>
+        </condition>
+        <delete dir="build/netbeans-platform-check"/>
+    </target>
+
+    <target name="-select-platform-source" depends="check-platform,-verify-installed-platform">
+        <condition property="platform.use-installed">
+            <and>
+                <not><isset property="platform.ready"/></not>
+                <isset property="installed.platform.ready"/>
+            </and>
+        </condition>
+        <condition property="platform.use-archive">
+            <and>
+                <not><isset property="platform.ready"/></not>
+                <not><isset property="platform.use-installed"/></not>
+            </and>
+        </condition>
+    </target>
+
+    <target name="-copy-installed-platform" depends="-select-platform-source"
+            if="platform.use-installed">
+        <echo>Using registered NetBeans Platform ${netbeans-plat-version} from ${installed.netbeans.dir}</echo>
+        <delete dir="${nbplatform.active.dir}"/>
+        <mkdir dir="${nbplatform.active.dir}"/>
+        <copy todir="${nbplatform.active.dir}">
+            <fileset dir="${installed.netbeans.dir}">
+                <include name="harness/**"/>
+                <include name="platform/**"/>
+                <include name="ide/**"/>
+            </fileset>
+        </copy>
+        <chmod dir="${nbplatform.active.dir}/platform/lib" includes="nbexec" perm="755" osfamily="unix"/>
+        <echo file="${nbplatform.active.dir}/.installed-platform-version">${netbeans-plat-version}</echo>
+    </target>
+
+    <target name="-download-netbeans-archive" depends="-select-platform-source"
+            if="platform.use-archive">
+        <echo>Downloading the pinned NetBeans Platform ${netbeans-plat-version}</echo>
         <mkdir dir="${platform.cache.dir}"/>
         <get src="${netbeans.distribution.url}" dest="${platform.archive}" skipexisting="true"/>
         <checksum file="${platform.archive}" algorithm="SHA-512" property="platform.actual.sha512"/>
@@ -69,6 +154,9 @@
         <chmod dir="${nbplatform.active.dir}/platform/lib" includes="nbexec" perm="755" osfamily="unix"/>
         <echo file="${nbplatform.active.dir}/.verified-distribution">${netbeans.distribution.sha512}</echo>
     </target>
+
+    <target name="download"
+            depends="-copy-installed-platform,-download-netbeans-archive"/>
 
     <target name="check-javahelp" depends="download">
         <condition property="javahelp.ready">

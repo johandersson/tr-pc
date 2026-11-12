@@ -38,7 +38,9 @@ commands, and issue and pull request guidance.
 - Apache Ant 1.10.14 or newer
 - Optional: [just](https://github.com/casey/just)
 
-The build downloads and verifies the pinned NetBeans Platform automatically.
+The build reuses a matching NetBeans Platform already registered with the IDE,
+or downloads and verifies the pinned platform when no matching installation is
+available.
 It also restores the JavaHelp runtime omitted from the Apache binary distribution,
 so Contextual Help and F1 work without installing additional libraries.
 Gradle is provided by the included wrapper.
@@ -134,8 +136,10 @@ Optional shortcuts are `just verify-headless`, `just verify-ci`, and
 
 ## Reproducibility
 
-Downloaded NetBeans, JavaHelp, and Windows JDK archives are checksum-verified and cached in
-`netbeans-plat/downloads`. Versions and checksums are pinned in
+Downloaded NetBeans, JavaHelp, and Windows JDK archives are checksum-verified
+and cached in `netbeans-plat/downloads`. A registered NetBeans installation is
+copied into the local platform cache without modifying the installation.
+Versions and checksums are pinned in
 `nbproject/platform.properties`. Gradle dependency locks and verification
 metadata are also checked into the repository.
 
