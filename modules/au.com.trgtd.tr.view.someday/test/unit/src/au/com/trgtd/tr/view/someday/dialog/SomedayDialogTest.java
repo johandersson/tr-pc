@@ -10,6 +10,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.FutureTask;
+import javax.swing.Action;
 import javax.swing.JComponent;
 import javax.swing.JRootPane;
 import javax.swing.KeyStroke;
@@ -44,6 +45,35 @@ public class SomedayDialogTest {
                             assertTrue(dialog.isShowing());
                             assertEquals("", panel(dialog).getDescr());
                         }
+                    } finally {
+                        dialog.dispose();
+                    }
+                    return null;
+                });
+                SwingUtilities.invokeLater(checks);
+                dialog.showCreateDialog();
+                await(checks);
+            } finally {
+                dialog.dispose();
+            }
+        });
+    }
+
+    @Test
+    public void saveAndCloseAddsNewItemAndClosesDialog() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        SwingUtilities.invokeAndWait(() -> {
+            Data data = new Data();
+            SomedayDialog dialog = new SomedayDialog(data);
+            try {
+                FutureTask<Void> checks = new FutureTask<>(() -> {
+                    try {
+                        assertEquals("Save and Close (Ctrl+Enter)", button(dialog).getText());
+                        panel(dialog).setDescr("Someday item");
+                        saveAndClose(dialog);
+                        assertEquals(1, data.getFutureManager().size());
+                        assertEquals("Someday item", data.getFutureManager().list().get(0).getDescription());
+                        assertFalse(dialog.isShowing());
                     } finally {
                         dialog.dispose();
                     }
@@ -113,5 +143,28 @@ public class SomedayDialogTest {
             }
         }
         throw new AssertionError("Missing dialog panel");
+    }
+
+    private static javax.swing.JButton button(SomedayDialog dialog) {
+        for (Component component : dialog.getContentPane().getComponents()) {
+            if (component instanceof javax.swing.JPanel panel) {
+                for (Component child : panel.getComponents()) {
+                    if (child instanceof javax.swing.JButton button && button.getText().startsWith("Save and Close")) {
+                        return button;
+                    }
+                }
+            }
+        }
+        throw new AssertionError("Missing Save and Close button");
+    }
+
+    private static void saveAndClose(SomedayDialog dialog) {
+        JRootPane root = dialog.getRootPane();
+        KeyStroke stroke = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK);
+        Object key = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(stroke);
+        assertNotNull("Ctrl+Enter must save and close throughout the dialog", key);
+        Action action = root.getActionMap().get(key);
+        assertNotNull(action);
+        action.actionPerformed(new ActionEvent(root, ActionEvent.ACTION_PERFORMED, "save-and-close"));
     }
 }

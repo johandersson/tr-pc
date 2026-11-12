@@ -49,6 +49,7 @@ public class ThoughtDialog extends JDialog {
     private ThoughtDialogPanel thoughtPanel;
     private Thought thought;
     private JButton okButton;
+    private JButton saveCloseButton;
     private JButton cancelButton;
     
     /**
@@ -84,6 +85,13 @@ public class ThoughtDialog extends JDialog {
         okButton.addActionListener((ActionEvent e) -> {
             ok();
         });
+        saveCloseButton = new JButton(NbBundle.getMessage(getClass(), "save.close"));
+        saveCloseButton.addActionListener((ActionEvent e) -> {
+            saveAndClose();
+        });
+        rootPane.registerKeyboardAction(e -> saveCloseButton.doClick(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK),
+                JComponent.WHEN_IN_FOCUSED_WINDOW);
         rootPane.registerKeyboardAction(e -> okButton.doClick(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK),
                 JComponent.WHEN_IN_FOCUSED_WINDOW);
@@ -105,6 +113,7 @@ public class ThoughtDialog extends JDialog {
 //	p.add(okButton, "sgx 0, tag ok");
 //	p.add(cancelButton, "sgx 1, tag cancel, wrap");
 	p.add(okButton, "tag ok");
+	p.add(saveCloseButton, "tag ok");
 	p.add(cancelButton, "tag cancel, wrap");
 	return p;
     }
@@ -129,6 +138,14 @@ public class ThoughtDialog extends JDialog {
     
     /* Handle OK. */
     private void ok() {
+        save(false);
+    }
+
+    private void saveAndClose() {
+        save(true);
+    }
+
+    private void save(boolean closeAfterSave) {
         requestFocusInWindow();
         
         thought.setDescription(thoughtPanel.getDescr());
@@ -139,11 +156,13 @@ public class ThoughtDialog extends JDialog {
             return;
         }
         if (mode == Mode.MODIFY) {
-            setVisible(false);
-            dispose();
+            close();
         } else { // (mode == Mode.CREATE)
             data.getThoughtManager().add(thought);
-            
+            if (closeAfterSave) {
+                close();
+                return;
+            }
             thought = new Thought(data.getNextID());
             thoughtPanel.setDescr(thought.getDescription());
             //Next line is commented so that topic defaults to last one used.
@@ -151,6 +170,11 @@ public class ThoughtDialog extends JDialog {
             thoughtPanel.setNotes(thought.getNotes());
             thoughtPanel.focus();
         }
+    }
+
+    private void close() {
+        setVisible(false);
+        dispose();
     }
     
     /* Handle Cancel. */

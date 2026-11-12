@@ -50,6 +50,7 @@ public class SomedayDialog extends JDialog {
     private SomedayDialogPanel somedayPanel;
     private Future future;
     private JButton okButton;
+    private JButton saveCloseButton;
     private JButton cancelButton;
     
     /**
@@ -84,6 +85,13 @@ public class SomedayDialog extends JDialog {
         okButton.addActionListener((ActionEvent e) -> {
             ok();
         });
+        saveCloseButton = new JButton(NbBundle.getMessage(getClass(), "save.close"));
+        saveCloseButton.addActionListener((ActionEvent e) -> {
+            saveAndClose();
+        });
+        rp.registerKeyboardAction(e -> saveCloseButton.doClick(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK),
+                JComponent.WHEN_IN_FOCUSED_WINDOW);
         rp.registerKeyboardAction(e -> okButton.doClick(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK),
                 JComponent.WHEN_IN_FOCUSED_WINDOW);
@@ -103,6 +111,7 @@ public class SomedayDialog extends JDialog {
     private JPanel createButtonsPanel() {
 	JPanel p = new JPanel(new MigLayout("nogrid, fillx, aligny 100%, gapy unrel"));
 	p.add(okButton, "sgx 0, tag ok");
+	p.add(saveCloseButton, "sgx 0, tag ok");
 	p.add(cancelButton, "sgx 1, tag cancel, wrap");
 	return p;
     }
@@ -127,6 +136,14 @@ public class SomedayDialog extends JDialog {
     
     /* Handle OK. */
     private void ok() {
+        save(false);
+    }
+
+    private void saveAndClose() {
+        save(true);
+    }
+
+    private void save(boolean closeAfterSave) {
         future.setDescription(somedayPanel.getDescr());
         future.setTopic(somedayPanel.getTopic());
         future.setNotes(somedayPanel.getNotes());
@@ -136,10 +153,13 @@ public class SomedayDialog extends JDialog {
             return;
         }
         if (mode == Mode.MODIFY) {
-            setVisible(false);
-            dispose();
+            close();
         } else { // (mode == Mode.CREATE)
             data.getFutureManager().add(future);
+            if (closeAfterSave) {
+                close();
+                return;
+            }
             future = new Future(data.getNextID());
             somedayPanel.setDescr(future.getDescription());
             // following commenting to default to last topic used
@@ -148,6 +168,11 @@ public class SomedayDialog extends JDialog {
             somedayPanel.setTickle(future.getTickle());
             somedayPanel.focus();
         }
+    }
+
+    private void close() {
+        setVisible(false);
+        dispose();
     }
     
     /* Handle Cancel. */
