@@ -31,9 +31,11 @@ import au.com.trgtd.tr.view.someday.screen.SomedaysTopComponent;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Desktop;
+import java.awt.Rectangle;
 import java.io.IOException;
 import java.net.URI;
 import java.awt.event.MouseAdapter;
@@ -41,8 +43,10 @@ import java.awt.event.MouseEvent;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Consumer;
@@ -51,6 +55,7 @@ import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.UIManager;
@@ -76,6 +81,7 @@ public final class DashboardPanel extends JPanel {
     private static final int COLLAPSED_ROWS = 8;
 
     private final Set<String> expanded = new HashSet<>();
+    private final Map<String, JComponent> sectionTargets = new HashMap<>();
     private final DateFormat timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT);
     private final DateFormat dayFormat = new SimpleDateFormat("EEE d MMM");
     private final DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM);
@@ -114,6 +120,7 @@ public final class DashboardPanel extends JPanel {
         Data data = DataLookup.instance().lookup(Data.class);
         DashboardModel model = DashboardModel.build(data, new Date(), UPCOMING_DAYS);
         removeAll();
+        sectionTargets.clear();
         if (data == null) {
             add(text(msg("dashboard.no.data")));
         } else {
@@ -141,15 +148,26 @@ public final class DashboardPanel extends JPanel {
         summary.add(link(msg("dashboard.refresh"), this::refresh));
         add(summary);
 
+        attention(model);
+
+        groupHeader(msg("dashboard.group.plan"));
+        section("missed", msg("dashboard.missed"), model.missedScheduled,
+                a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), actionNavigation, null);
         section("today", msg("dashboard.today"), model.today,
                 a -> time(a, false) + escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.today.none"));
         section("upcoming", msg("dashboard.upcoming", DashboardPanel.UPCOMING_DAYS), model.upcoming,
                 a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.upcoming.none"));
+        section("dueToday", msg("dashboard.due.today"), model.dueToday,
+                a -> escape(a.getDescription()) + projectSuffix(a), actionNavigation, null);
+
+        groupHeader(msg("dashboard.group.act"));
         nextActions(model);
         calls(model);
-        section("due", msg("dashboard.due"), model.due,
+
+        groupHeader(msg("dashboard.group.followup"));
+        section("overdue", msg("dashboard.overdue"), model.overdue,
                 a -> "<b>" + dateFormat.format(a.getDueDate()) + "</b> " + escape(a.getDescription()) + projectSuffix(a),
                 actionNavigation, null);
         section("followups", msg("dashboard.followups"), model.followUps,
@@ -157,6 +175,8 @@ public final class DashboardPanel extends JPanel {
         section("waiting", msg("dashboard.waiting"), model.waitingFor,
                 a -> escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.waiting.none"));
+
+        groupHeader(msg("dashboard.group.review"));
         section("someday", msg("dashboard.someday"), model.somedayMaybe,
                 f -> escape(f.getDescription()), somedayNavigation, msg("dashboard.someday.none"));
         add(link(msg("dashboard.someday.all"), () -> perform(FuturesAction.class)));
@@ -169,8 +189,73 @@ public final class DashboardPanel extends JPanel {
                 p -> openProject(p.project()), msg("dashboard.projects.none"));
     }
 
+    private void attention(DashboardModel model) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(LEFT_ALIGNMENT);
+        panel.setOpaque(true);
+        panel.setBackground(attentionBackground());
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(separatorColor()),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+
+        JLabel heading = new JLabel(msg("dashboard.attention"));
+        heading.setFont(heading.getFont().deriveFont(Font.BOLD));
+        heading.setAlignmentX(LEFT_ALIGNMENT);
+        panel.add(heading);
+        panel.add(Box.createVerticalStrut(3));
+
+        int count = 0;
+        count += attentionLink(panel, model.inboxCount,
+                msg("dashboard.attention.inbox", model.inboxCount),
+                () -> perform(ProcessThoughtsAction.class));
+        count += attentionLink(panel, model.stalledProjects.size(),
+                msg("dashboard.attention.stalled", model.stalledProjects.size()),
+                () -> scrollToSection("stalled"));
+        count += attentionLink(panel, model.missedScheduled.size(),
+                msg("dashboard.attention.missed", model.missedScheduled.size()),
+                () -> scrollToSection("missed"));
+        count += attentionLink(panel, model.followUps.size(),
+                msg("dashboard.attention.followups", model.followUps.size()),
+                () -> scrollToSection("followups"));
+        count += attentionLink(panel, model.overdue.size(),
+                msg("dashboard.attention.overdue", model.overdue.size()),
+                () -> scrollToSection("overdue"));
+        if (count == 0) {
+            JLabel clear = text("<html><i>" + escape(msg("dashboard.attention.none")) + "</i></html>");
+            panel.add(clear);
+        }
+
+        Dimension preferred = panel.getPreferredSize();
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferred.height));
+        add(Box.createVerticalStrut(10));
+        add(panel);
+    }
+
+    private static int attentionLink(JPanel panel, int count, String label, Runnable onClick) {
+        if (count == 0) {
+            return 0;
+        }
+        panel.add(link("<html><b>" + count + "</b> " + escape(label) + "</html>", onClick));
+        return 1;
+    }
+
+    private void groupHeader(String heading) {
+        add(Box.createVerticalStrut(18));
+        JLabel label = new JLabel(heading.toUpperCase());
+        label.setFont(label.getFont().deriveFont(Font.BOLD, label.getFont().getSize2D() - 1f));
+        label.setForeground(secondaryTextColor());
+        label.setOpaque(true);
+        label.setBackground(groupBackground());
+        label.setBorder(BorderFactory.createEmptyBorder(5, 7, 5, 7));
+        label.setAlignmentX(LEFT_ALIGNMENT);
+        Dimension preferred = label.getPreferredSize();
+        label.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferred.height));
+        add(label);
+    }
+
     private void calls(DashboardModel model) {
-        sectionHeader(msg("dashboard.calls"), model.callsCount);
+        sectionHeader("calls", msg("dashboard.calls"), model.callsCount);
         if (model.calls.isEmpty()) {
             add(text("<html><i>" + escape(msg("dashboard.calls.none")) + "</i></html>"));
             return;
@@ -201,7 +286,7 @@ public final class DashboardPanel extends JPanel {
     }
 
     private void nextActions(DashboardModel model) {
-        sectionHeader(msg("dashboard.next"), model.nextActionsCount);
+        sectionHeader("next", msg("dashboard.next"), model.nextActionsCount);
         if (model.nextActions.isEmpty()) {
             add(text("<html><i>" + escape(msg("dashboard.next.none")) + "</i></html>"));
             return;
@@ -227,7 +312,7 @@ public final class DashboardPanel extends JPanel {
         if (items.isEmpty() && emptyText == null) {
             return;
         }
-        sectionHeader(heading, items.size());
+        sectionHeader(key, heading, items.size());
         if (items.isEmpty()) {
             add(text("<html><i>" + escape(emptyText) + "</i></html>"));
             return;
@@ -249,7 +334,7 @@ public final class DashboardPanel extends JPanel {
         }
     }
 
-    private void sectionHeader(String heading, int count) {
+    private void sectionHeader(String key, String heading, int count) {
         add(Box.createVerticalStrut(14));
         JLabel header = new JLabel(heading + (count == 0 ? "" : " (" + count + ")"));
         header.setFont(header.getFont().deriveFont(Font.BOLD));
@@ -257,8 +342,17 @@ public final class DashboardPanel extends JPanel {
         header.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, separatorColor()),
                 BorderFactory.createEmptyBorder(0, 0, 3, 0)));
+        sectionTargets.put(key, header);
         add(header);
         add(Box.createVerticalStrut(3));
+    }
+
+    private void scrollToSection(String key) {
+        JComponent target = sectionTargets.get(key);
+        if (target != null) {
+            EventQueue.invokeLater(() -> target.scrollRectToVisible(
+                    new Rectangle(0, 0, target.getWidth(), target.getHeight())));
+        }
     }
 
     private String time(Action action, boolean withDay) {
@@ -379,6 +473,21 @@ public final class DashboardPanel extends JPanel {
     private static Color separatorColor() {
         Color c = UIManager.getColor("Separator.foreground");
         return c != null ? c : Color.LIGHT_GRAY;
+    }
+
+    private static Color attentionBackground() {
+        Color c = UIManager.getColor("TextField.background");
+        return c != null ? c : UIManager.getColor("Panel.background");
+    }
+
+    private static Color groupBackground() {
+        Color c = UIManager.getColor("TableHeader.background");
+        return c != null ? c : UIManager.getColor("Panel.background");
+    }
+
+    private static Color secondaryTextColor() {
+        Color c = UIManager.getColor("Label.disabledForeground");
+        return c != null ? c : Color.GRAY;
     }
 
     static String escape(String s) {

@@ -56,8 +56,14 @@ public final class DashboardModel {
     public final List<Action> today = new ArrayList<>();
     /** Scheduled actions for the upcoming days after today, sorted by time. */
     public final List<Action> upcoming = new ArrayList<>();
+    /** Unfinished scheduled actions whose scheduled time has passed. */
+    public final List<Action> missedScheduled = new ArrayList<>();
     /** Not done, non-scheduled actions due today or earlier. */
     public final List<Action> due = new ArrayList<>();
+    /** Not done, non-scheduled actions due before today. */
+    public final List<Action> overdue = new ArrayList<>();
+    /** Not done, non-scheduled actions due today. */
+    public final List<Action> dueToday = new ArrayList<>();
     /** Delegated actions with a follow-up date today or earlier. */
     public final List<Action> followUps = new ArrayList<>();
     /** Up to ten available non-Calls Do ASAP actions, sorted by context then due date. */
@@ -80,8 +86,10 @@ public final class DashboardModel {
     private final long startToday;
     private final long startTomorrow;
     private final long endUpcoming;
+    private final long now;
 
     private DashboardModel(Date now, int upcomingDays) {
+        this.now = now.getTime();
         Calendar c = Calendar.getInstance();
         c.setTime(now);
         c.set(Calendar.HOUR_OF_DAY, 0);
@@ -122,7 +130,10 @@ public final class DashboardModel {
         Comparator<Action> byScheduled = Comparator.comparing(DashboardModel::scheduledDate);
         model.today.sort(byScheduled);
         model.upcoming.sort(byScheduled);
+        model.missedScheduled.sort(byScheduled);
         model.due.sort(Comparator.comparing(Action::getDueDate));
+        model.overdue.sort(Comparator.comparing(Action::getDueDate));
+        model.dueToday.sort(Comparator.comparing(Action::getDueDate));
         model.followUps.sort(Comparator.comparing(a -> ((ActionStateDelegated) a.getState()).getDate()));
         return model;
     }
@@ -173,6 +184,9 @@ public final class DashboardModel {
             Date date = scheduled.getDate();
             if (date != null) {
                 long t = date.getTime();
+                if (t < now) {
+                    missedScheduled.add(action);
+                }
                 if (t >= startToday && t < startTomorrow) {
                     today.add(action);
                 } else if (t >= startTomorrow && t < endUpcoming) {
@@ -197,6 +211,11 @@ public final class DashboardModel {
             Date dueDate = action.getDueDate();
             if (dueDate != null && dueDate.getTime() < startTomorrow) {
                 due.add(action);
+                if (dueDate.getTime() < startToday) {
+                    overdue.add(action);
+                } else {
+                    dueToday.add(action);
+                }
             }
         }
         return action.isActive();

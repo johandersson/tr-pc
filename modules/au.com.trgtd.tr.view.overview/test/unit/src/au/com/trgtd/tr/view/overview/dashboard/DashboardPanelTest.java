@@ -30,8 +30,11 @@ import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.action.Action;
 import tr.model.action.ActionStateDelegated;
+import tr.model.action.ActionStateInactive;
 import tr.model.action.ActionStateScheduled;
 import tr.model.future.Future;
+import tr.model.project.Project;
+import tr.model.thought.Thought;
 import static org.junit.Assert.*;
 
 public class DashboardPanelTest {
@@ -272,7 +275,7 @@ public class DashboardPanelTest {
                 Action action = new Action(data);
                 action.setDescription("Scheduled dashboard action");
                 ActionStateScheduled state = new ActionStateScheduled();
-                state.setDate(new java.util.Date());
+                state.setDate(new java.util.Date(System.currentTimeMillis() + 60_000L));
                 action.setState(state);
                 data.getRootActions().add(action);
                 DataLookup.instance().setData(data);
@@ -293,6 +296,76 @@ public class DashboardPanelTest {
                 DataLookup.instance().setData(original);
             }
         });
+    }
+
+    @Test
+    public void attentionCardShowsEveryRequiredWarningAndDashboardGroups() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                data.getThoughtManager().add(new Thought(data.getNextID()));
+
+                Project stalled = new Project(data);
+                stalled.setDescription("Stalled project");
+                Action inactive = new Action(data);
+                inactive.setState(new ActionStateInactive());
+                stalled.add(inactive);
+                data.getRootProjects().add(stalled);
+
+                Action missed = new Action(data);
+                missed.setDescription("Missed scheduled action");
+                ActionStateScheduled scheduled = new ActionStateScheduled();
+                scheduled.setDate(new java.util.Date(System.currentTimeMillis() - 86_400_000L));
+                missed.setState(scheduled);
+
+                Action followUp = new Action(data);
+                ActionStateDelegated delegated = new ActionStateDelegated();
+                delegated.setDate(new java.util.Date(System.currentTimeMillis() - 86_400_000L));
+                followUp.setState(delegated);
+
+                Action overdue = new Action(data);
+                overdue.setDueDate(new java.util.Date(System.currentTimeMillis() - 86_400_000L));
+                for (Action action : List.of(missed, followUp, overdue)) {
+                    data.getRootActions().add(action);
+                }
+
+                DataLookup.instance().setData(data);
+                DashboardPanel panel = new DashboardPanel();
+                panel.refresh();
+                List<JLabel> labels = labels(panel);
+
+                for (String key : List.of("dashboard.attention.inbox", "dashboard.attention.stalled",
+                        "dashboard.attention.missed", "dashboard.attention.followups",
+                        "dashboard.attention.overdue")) {
+                    String text = NbBundle.getMessage(DashboardPanel.class, key, 1);
+                    assertTrue(key, labels.stream().anyMatch(label -> label.getText().contains(text)
+                            && label.getMouseListeners().length > 0));
+                }
+                for (String key : List.of("dashboard.group.plan", "dashboard.group.act",
+                        "dashboard.group.followup", "dashboard.group.review")) {
+                    String text = NbBundle.getMessage(DashboardPanel.class, key);
+                    assertTrue(key, labels.stream().anyMatch(label -> label.getText().equalsIgnoreCase(text)));
+                }
+                assertTrue(labels.stream().anyMatch(label -> label.getText().contains("Missed scheduled action")
+                        && label.getMouseListeners().length > 0));
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    private static List<JLabel> labels(Component component) {
+        List<JLabel> labels = new ArrayList<>();
+        if (component instanceof JLabel label) {
+            labels.add(label);
+        }
+        if (component instanceof java.awt.Container container) {
+            for (Component child : container.getComponents()) {
+                labels.addAll(labels(child));
+            }
+        }
+        return labels;
     }
 
     private static void click(JLabel label) {

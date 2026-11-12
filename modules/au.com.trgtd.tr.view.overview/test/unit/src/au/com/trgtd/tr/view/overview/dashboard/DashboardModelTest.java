@@ -66,6 +66,7 @@ public class DashboardModelTest {
 
         assertEquals(List.of(early, late), model.today);
         assertEquals(List.of(tomorrow, inTwoDays), model.upcoming);
+        assertEquals(List.of(yesterday, early), model.missedScheduled);
     }
 
     @Test
@@ -129,8 +130,30 @@ public class DashboardModelTest {
         assertEquals(1, model.inboxCount);
         assertEquals(1, model.doAsapCount);
         assertEquals(List.of(asap), model.due);
+        assertEquals(List.of(asap), model.overdue);
+        assertTrue(model.dueToday.isEmpty());
         assertEquals(List.of(delegated), model.followUps);
         assertNull(DashboardModel.getProject(asap));
+    }
+
+    @Test
+    public void dueActionsAreSplitIntoOverdueAndDueToday() {
+        Data data = new Data();
+        Action overdue = new Action(data);
+        overdue.setDueDate(date(NOW.minusDays(1)));
+        Action dueToday = new Action(data);
+        dueToday.setDueDate(date(NOW.withHour(18)));
+        Action dueTomorrow = new Action(data);
+        dueTomorrow.setDueDate(date(NOW.plusDays(1)));
+        for (Action action : List.of(overdue, dueToday, dueTomorrow)) {
+            data.getRootActions().add(action);
+        }
+
+        DashboardModel model = DashboardModel.build(data, date(NOW), 2);
+
+        assertEquals(List.of(overdue), model.overdue);
+        assertEquals(List.of(dueToday), model.dueToday);
+        assertEquals(List.of(overdue, dueToday), model.due);
     }
 
     @Test
