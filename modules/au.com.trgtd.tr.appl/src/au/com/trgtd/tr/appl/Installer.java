@@ -18,7 +18,12 @@
 package au.com.trgtd.tr.appl;
 
 import au.com.trgtd.tr.appl.prefs.ApplicationPrefs;
+import java.awt.Frame;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import javax.swing.SwingUtilities;
 import org.openide.modules.ModuleInstall;
+import org.openide.util.Utilities;
 import org.openide.windows.WindowManager;
 
 /**
@@ -28,12 +33,33 @@ public class Installer extends ModuleInstall {
 
     @Override
     public void restored() {        
+        if (Utilities.getOperatingSystem() == Utilities.OS_LINUX) {
+            WindowManager.getDefault().invokeWhenUIReady(() ->
+                    showMaximized(WindowManager.getDefault().getMainWindow()));
+        }
         final int ms = ApplicationPrefs.getInactivityMs();        
         if (ms > 0) {
             WindowManager.getDefault().invokeWhenUIReady(() -> {
                 InactivityDetector.start(ms);
             });            
         }
+    }
+
+    static void showMaximized(Frame window) {
+        // Some Linux window managers resize the native frame without AWT validating it, leaving stale grey layout.
+        window.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent event) {
+                SwingUtilities.invokeLater(() -> relayout(window));
+            }
+        });
+        window.setExtendedState((window.getExtendedState() & ~Frame.ICONIFIED) | Frame.MAXIMIZED_BOTH);
+        relayout(window);
+    }
+
+    private static void relayout(Frame window) {
+        window.validate();
+        window.repaint();
     }
 
 }

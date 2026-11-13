@@ -63,6 +63,7 @@ public final class OverviewTopComponent extends Window {
     private final Overview overview;    
     private final JSVGCanvas canvas;
     private final DashboardPanel dashboard;
+    private final QuickAddNextActionPanel quickAdd;
     private final DashboardRefresh dashboardRefresh;
     
     private OverviewTopComponent() {
@@ -80,8 +81,9 @@ public final class OverviewTopComponent extends Window {
         dashboardScroll.setBorder(BorderFactory.createEmptyBorder());
         dashboardScroll.getVerticalScrollBar().setUnitIncrement(16);
         dashboardScroll.setMinimumSize(new Dimension(0, 0));
+        quickAdd = new QuickAddNextActionPanel(dashboard::refresh);
         JSplitPane dashboardColumn = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                dashboardScroll, new QuickAddNextActionPanel(dashboard::refresh));
+                dashboardScroll, quickAdd);
         dashboardColumn.setResizeWeight(1);
         dashboardColumn.setContinuousLayout(true);
         dashboardColumn.setBorder(BorderFactory.createEmptyBorder());
@@ -192,6 +194,16 @@ public final class OverviewTopComponent extends Window {
     @Override
     public void componentActivated() {
         refresh();
+        SwingUtilities.invokeLater(() -> {
+            if (TopComponent.getRegistry().getActivated() == this) {
+                takeFocus();
+            }
+        });
+    }
+
+    @Override
+    public void takeFocus() {
+        quickAdd.focusEditor();
     }
 
     @Override

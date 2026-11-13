@@ -6,13 +6,19 @@ package au.com.trgtd.tr.view.overview.dashboard;
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.GraphicsEnvironment;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -27,8 +33,55 @@ import tr.model.action.Action;
 import tr.model.action.ActionStateASAP;
 import tr.model.context.Context;
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeFalse;
 
 public class QuickAddNextActionPanelTest {
+
+    @Test
+    public void focusingCaptureMovesKeyboardFocusToEditorAndPreservesDraft() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        JFrame[] frame = new JFrame[1];
+        QuickAddNextActionPanel[] capture = new QuickAddNextActionPanel[1];
+        CountDownLatch buttonFocused = new CountDownLatch(1);
+        CountDownLatch editorFocused = new CountDownLatch(1);
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                capture[0] = new QuickAddNextActionPanel(() -> {});
+                editor(capture[0]).setText("Existing draft");
+                editor(capture[0]).addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusGained(FocusEvent event) {
+                        editorFocused.countDown();
+                    }
+                });
+                JButton button = saveButton(capture[0]);
+                button.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusGained(FocusEvent event) {
+                        buttonFocused.countDown();
+                    }
+                });
+                frame[0] = new JFrame();
+                frame[0].add(capture[0]);
+                frame[0].setSize(400, 280);
+                frame[0].setVisible(true);
+                button.requestFocusInWindow();
+            });
+            assertTrue("Window must receive focus", buttonFocused.await(5, TimeUnit.SECONDS));
+            SwingUtilities.invokeAndWait(() -> capture[0].focusEditor());
+            assertTrue("Capture editor must receive focus", editorFocused.await(5, TimeUnit.SECONDS));
+            SwingUtilities.invokeAndWait(() -> {
+                assertTrue(editor(capture[0]).isFocusOwner());
+                assertEquals("Existing draft", editor(capture[0]).getText());
+            });
+        } finally {
+            SwingUtilities.invokeAndWait(() -> {
+                if (frame[0] != null) {
+                    frame[0].dispose();
+                }
+            });
+        }
+    }
 
     @Test
     public void shortcutAndButtonCreateDoAsapActionsNotThoughts() throws Exception {

@@ -54,6 +54,8 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Improvements
 
+- Quick Add Next Action receives keyboard focus when the dashboard activates,
+  including on startup, so capture can begin immediately.
 - **Next actions on the dashboard.** Shows up to 10 available Do ASAP actions,
   sorted by context and then earliest due date, with undated actions last
   within each context. A link opens the full Do ASAP screen.
@@ -83,6 +85,8 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Bug fixes
 
+- Linux startup maximizes and validates the main window after the window system
+  is ready, rather than requiring a manual resize to reveal its contents.
 - Dashboard attention links now scroll the target section toward the top of
   the visible list so its entries, not just its heading, are shown.
 - Standalone Linux packaging no longer invokes Windows icon-branding tools

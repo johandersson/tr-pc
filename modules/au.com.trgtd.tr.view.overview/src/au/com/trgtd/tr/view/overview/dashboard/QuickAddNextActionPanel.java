@@ -83,6 +83,10 @@ public final class QuickAddNextActionPanel extends JPanel {
         });
     }
 
+    public void focusEditor() {
+        editor.requestFocusInWindow();
+    }
+
     private void save() {
         Data data = DataLookup.instance().lookup(Data.class);
         if (data == null) {
@@ -154,7 +158,7 @@ public final class QuickAddNextActionPanel extends JPanel {
 
     private void showMessage(String message) {
         status.setText(message);
-        editor.requestFocusInWindow();
+        focusEditor();
     }
 
     private static String msg(String key, Object... args) {

@@ -93,7 +93,11 @@ available.
 ant build-linux-self-contained
 ```
 
-Output: `dist/trgtd-linux-x64.tar.gz`
+Outputs: `dist/trgtd-linux-x64.tar.gz` and the ready-to-run `dist/trgtd/`.
+
+The build also extracts the archive into `dist/`, updating the local application
+on every rebuild without a separate manual extraction. Start it with
+`dist/trgtd/bin/trgtd`.
 
 This is the recommended Linux distribution. Like the Windows package it
 includes a stripped Java 27 runtime, so users do **not** need to install Java.

@@ -258,6 +258,13 @@
             <arg value="${app.name}"/>
         </exec>
         <echo>Created self-contained Linux package: ${dist.dir}/${app.name}-linux-x64.tar.gz</echo>
+        <exec executable="tar" failonerror="true">
+            <arg value="-xzf"/>
+            <arg file="${dist.dir}/${app.name}-linux-x64.tar.gz"/>
+            <arg value="-C"/>
+            <arg file="${dist.dir}"/>
+        </exec>
+        <echo>Updated ready-to-run Linux application: ${dist.dir}/${app.name}/bin/${app.name}</echo>
     </target>
 
     <target name="run-dev" depends="build" description="Runs ThinkingRock without the NetBeans IDE. Back up production data first.">
