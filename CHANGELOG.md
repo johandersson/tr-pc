@@ -72,6 +72,11 @@ ThinkingRock. See [LICENSE](LICENSE).
 - **Faster review tabs and calendar.** Tab switching avoids redundant
   refreshes. Hidden calendar views no longer refresh in the background, and
   scheduled events are looked up by day instead of rescanning every action.
+- **Faster Actions screens and saving.** Filters are re-applied in one pass
+  after an action change instead of once per filter. Returning to an Actions
+  tab applies only added or removed actions instead of rebuilding the whole
+  list. Manual save (Ctrl+S) writes the data file in the background so the UI
+  no longer freezes on large files.
 - **Contextual help (F1) works again.** The JavaHelp runtime, which the
   Apache NetBeans binaries omit, is restored.
 - **Ctrl+Shift+N captures a thought** from anywhere in the application, as

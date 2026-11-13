@@ -85,7 +85,8 @@ public final class SaveAction extends CallableSystemAction implements Observer {
     
     @Override
     protected boolean asynchronous() {
-        return false;
+        // Writing a large data file must not freeze the UI; store() is synchronized with autosave.
+        return true;
     }
     
     @Override

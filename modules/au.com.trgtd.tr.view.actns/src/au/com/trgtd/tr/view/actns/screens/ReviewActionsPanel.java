@@ -126,14 +126,14 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
 
         actionsEventList = new BasicEventList<>();
         actionsEventList.addAll(actionsList);
-        MatcherEditor<Action> matcherEditor = filters.getMatcherEditor();
+        batchMatcherEditor = new BatchMatcherEditor<>(filters.getMatcherEditor());
         // Apply restored filter values before the list is built so the tab
         // shows the filtered actions and count from the start.
         for (ActionsFilter filter : screen.getFilters()) {
             filter.getFilterCombo().fireValueChange();
         }
         refreshedDay = LocalDate.now();
-        actionsFilterList = new FilterList<>(actionsEventList, matcherEditor);
+        actionsFilterList = new FilterList<>(actionsEventList, batchMatcherEditor);
         actionsFilterList.addListEventListener((ListEvent<Action> e) -> {
             itemCountShower.showItemCount(e.getSourceList().size());
             // fix problem of number of selected rows increasing by clearing
@@ -534,9 +534,11 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
             actionsSortedList.setComparator(actionsSortedList.getComparator());
 
             // TODO Find a better way to fire update on filters
-            for (ActionsFilter filter : screen.getFilters()) {
-                filter.getFilterCombo().fireValueChange();
-            }
+            batchMatcherEditor.runBatch(() -> {
+                for (ActionsFilter filter : screen.getFilters()) {
+                    filter.getFilterCombo().fireValueChange();
+                }
+            });
 
             // add back selection listener
             selectionModel.addListSelectionListener(lsl);
@@ -558,8 +560,7 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
         Lock lock = actionsEventList.getReadWriteLock().writeLock();
         lock.lock();
         try {
-            actionsEventList.clear();
-            actionsEventList.addAll(Services.instance.getAllActions());
+            EventListSync.sync(actionsEventList, Services.instance.getAllActions());
             actionsRevision = Services.instance.getActionsRevision();
         } finally {
             lock.unlock();
@@ -603,6 +604,7 @@ public class ReviewActionsPanel extends JPanel implements ListSelectionListener,
     private EventTableModel<Action> actionsTableModel;
     private Collection<Action> actionsList;
     private EventList<Action> actionsEventList;
+    private BatchMatcherEditor<Action> batchMatcherEditor;
     private FilterList<Action> actionsFilterList;
     public SortedList<Action> actionsSortedList;
     private EventSelectionModel<Action> selectionModel;
