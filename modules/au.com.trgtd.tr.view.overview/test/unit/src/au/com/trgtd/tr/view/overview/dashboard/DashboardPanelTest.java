@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JLabel;
+import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import org.junit.Test;
 import org.openide.util.NbBundle;
@@ -366,6 +367,58 @@ public class DashboardPanelTest {
             }
         }
         return labels;
+    }
+
+    @Test
+    public void attentionJumpShowsStalledProjectRowsNotJustTheHeading() throws Exception {
+        Data[] original = new Data[1];
+        DashboardPanel[] dashboard = new DashboardPanel[1];
+        JScrollPane[] scroll = new JScrollPane[1];
+        JLabel[] heading = new JLabel[1];
+        JLabel[] firstProject = new JLabel[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                original[0] = DataLookup.instance().lookup(Data.class);
+                Data data = new Data();
+                for (int i = 0; i < 15; i++) {
+                    Project project = new Project(data);
+                    project.setDescription("Stalled-row-" + i);
+                    Action inactive = new Action(data);
+                    inactive.setState(new ActionStateInactive());
+                    project.add(inactive);
+                    data.getRootProjects().add(project);
+                }
+                DataLookup.instance().setData(data);
+                DashboardPanel panel = new DashboardPanel();
+                dashboard[0] = panel;
+                panel.refresh();
+                JScrollPane pane = new JScrollPane(panel);
+                scroll[0] = pane;
+                pane.setSize(480, 260);
+                pane.doLayout();
+                pane.getViewport().doLayout();
+                panel.doLayout();
+                String stalledHeading = NbBundle.getMessage(DashboardPanel.class, "dashboard.stalled") + " (15)";
+                heading[0] = labels(panel).stream()
+                        .filter(label -> label.getText().equals(stalledHeading)).findFirst().orElseThrow();
+                firstProject[0] = labels(panel).stream()
+                        .filter(label -> label.getText().contains("Stalled-row-")).findFirst().orElseThrow();
+                assertTrue(heading[0].getY() > pane.getViewport().getExtentSize().height);
+                String warning = NbBundle.getMessage(DashboardPanel.class, "dashboard.attention.stalled");
+                click(labels(panel).stream().filter(label -> label.getText().contains(warning))
+                        .findFirst().orElseThrow());
+            });
+            SwingUtilities.invokeAndWait(() -> {
+                var viewport = scroll[0].getViewport();
+                int expectedY = Math.min(heading[0].getY(),
+                        dashboard[0].getHeight() - viewport.getExtentSize().height);
+                assertEquals(expectedY, viewport.getViewPosition().y);
+                assertTrue("The first project must be fully visible",
+                        viewport.getViewRect().contains(firstProject[0].getBounds()));
+            });
+        } finally {
+            SwingUtilities.invokeAndWait(() -> DataLookup.instance().setData(original[0]));
+        }
     }
 
     private static void click(JLabel label) {

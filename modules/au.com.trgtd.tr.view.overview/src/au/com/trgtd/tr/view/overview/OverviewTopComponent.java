@@ -38,6 +38,8 @@ import au.com.trgtd.tr.view.Window;
 import au.com.trgtd.tr.view.overview.Overview.Screen;
 import au.com.trgtd.tr.view.overview.spi.OverviewSVGProvider;
 import au.com.trgtd.tr.view.overview.dashboard.DashboardPanel;
+import au.com.trgtd.tr.view.overview.dashboard.QuickAddNextActionPanel;
+import java.awt.Dimension;
 import java.util.logging.Level;
 import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
@@ -77,7 +79,14 @@ public final class OverviewTopComponent extends Window {
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         dashboardScroll.setBorder(BorderFactory.createEmptyBorder());
         dashboardScroll.getVerticalScrollBar().setUnitIncrement(16);
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, canvas, dashboardScroll);
+        dashboardScroll.setMinimumSize(new Dimension(0, 0));
+        JSplitPane dashboardColumn = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                dashboardScroll, new QuickAddNextActionPanel(dashboard::refresh));
+        dashboardColumn.setResizeWeight(1);
+        dashboardColumn.setContinuousLayout(true);
+        dashboardColumn.setBorder(BorderFactory.createEmptyBorder());
+        dashboardColumn.setMinimumSize(new Dimension(0, 0));
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, canvas, dashboardColumn);
         split.setResizeWeight(0.6);
         split.setBorder(BorderFactory.createEmptyBorder());
         add(split, BorderLayout.CENTER);

@@ -348,11 +348,14 @@ public final class DashboardPanel extends JPanel {
     }
 
     private void scrollToSection(String key) {
-        JComponent target = sectionTargets.get(key);
-        if (target != null) {
-            EventQueue.invokeLater(() -> target.scrollRectToVisible(
-                    new Rectangle(0, 0, target.getWidth(), target.getHeight())));
-        }
+        EventQueue.invokeLater(() -> {
+            JComponent target = sectionTargets.get(key);
+            if (target != null) {
+                Rectangle visible = getVisibleRect();
+                scrollRectToVisible(new Rectangle(visible.x, target.getY(),
+                        visible.width, visible.height));
+            }
+        });
     }
 
     private String time(Action action, boolean withDay) {

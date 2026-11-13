@@ -14,6 +14,13 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### New features
 
+- **Quick Add Next Action on the dashboard.** An embedded lower-right panel
+  creates single Do ASAP actions with Add or Ctrl+S, not inbox thoughts.
+  Put an existing context anywhere in the text (for example,
+  `Buy groceries @Errands`); context names are case-insensitive and can contain
+  spaces. Without a context, the action uses None. Unknown or conflicting
+  contexts show an inline message and keep the draft. Dashboard refreshes
+  leave unfinished drafts intact.
 - Project choosers now search current and future project names, including
   collapsed sub-projects, and adapt their initial size to project titles,
   the owner window and available screen space.
@@ -76,6 +83,8 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Bug fixes
 
+- Dashboard attention links now scroll the target section toward the top of
+  the visible list so its entries, not just its heading, are shown.
 - Standalone Linux packaging no longer invokes Windows icon-branding tools
   under WSL, so a Windows interoperability outage cannot block the Linux build.
 - Someday/Maybe Add and Edit dialogs now support Ctrl+S, with the shortcut
