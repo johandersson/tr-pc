@@ -56,9 +56,10 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 - Quick Add Next Action receives keyboard focus when the dashboard activates,
   including on startup, so capture can begin immediately.
-- **Next actions on the dashboard.** Shows up to 10 available Do ASAP actions,
-  sorted by context and then earliest due date, with undated actions last
-  within each context. A link opens the full Do ASAP screen.
+- **Next actions on the dashboard.** Shows the first 10 available Do ASAP
+  actions, sorted by context and then earliest due date, with undated actions
+  last within each context. *Show all* expands the list in place, like every
+  other limited dashboard list; each row still opens its action.
 - **Dashboard auto-refresh.** Visible dashboards update after thought capture
   and project/action changes, with rapid updates batched together and no polling.
   Returning to the dashboard refreshes it again.

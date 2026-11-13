@@ -202,7 +202,7 @@ public class DashboardModelTest {
     }
 
     @Test
-    public void thousandsOfNextActionsRetainOnlyTheFirstTenInSortedOrder() {
+    public void thousandsOfNextActionsAreAllRetainedInSortedOrder() {
         Data data = new Data();
         Context context = new Context(data.getNextID());
         context.setName("Work");
@@ -212,8 +212,8 @@ public class DashboardModelTest {
         DashboardModel model = DashboardModel.build(data, date(NOW), 2);
 
         assertEquals(1000, model.doAsapCount);
-        assertEquals(10, model.nextActions.size());
-        for (int i = 0; i < 10; i++) {
+        assertEquals(1000, model.nextActions.size());
+        for (int i = 0; i < 1000; i++) {
             assertEquals("Action " + i, model.nextActions.get(i).getDescription());
         }
     }
@@ -273,7 +273,7 @@ public class DashboardModelTest {
         DashboardModel model = DashboardModel.build(data, date(NOW), 2);
         assertEquals(40, model.doAsapCount);
         assertEquals(20, model.nextActionsCount);
-        assertEquals(10, model.nextActions.size());
+        assertEquals(20, model.nextActions.size());
         assertEquals(20, model.calls.size());
         assertTrue(model.nextActions.stream().noneMatch(model.calls::contains));
     }

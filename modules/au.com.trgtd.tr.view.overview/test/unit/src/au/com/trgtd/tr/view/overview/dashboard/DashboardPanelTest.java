@@ -76,7 +76,7 @@ public class DashboardPanelTest {
                 }
                 DataLookup.instance().setData(data);
                 List<URI> dialed = new ArrayList<>();
-                DashboardPanel panel = new DashboardPanel(() -> {}, dialed::add);
+                DashboardPanel panel = new DashboardPanel(dialed::add);
                 panel.refresh();
                 boolean inCalls = false;
                 int rows = 0;
@@ -140,7 +140,7 @@ public class DashboardPanelTest {
                 data.getFutureManager().add(future);
                 DataLookup.instance().setData(data);
                 List<Future> selected = new ArrayList<>();
-                DashboardPanel panel = new DashboardPanel(() -> {}, uri -> {}, selected::add);
+                DashboardPanel panel = new DashboardPanel(uri -> {}, action -> {}, selected::add);
                 panel.refresh();
                 int rows = 0;
                 for (Component component : panel.getComponents()) {
@@ -209,7 +209,7 @@ public class DashboardPanelTest {
                 data.getRootActions().add(action);
                 DataLookup.instance().setData(data);
                 List<URI> dialed = new ArrayList<>();
-                DashboardPanel panel = new DashboardPanel(() -> {}, dialed::add);
+                DashboardPanel panel = new DashboardPanel(dialed::add);
                 panel.refresh();
                 boolean inCalls = false;
                 int phoneLinks = 0;
@@ -237,7 +237,7 @@ public class DashboardPanelTest {
     }
 
     @Test
-    public void nextActionRowsSelectTheirActionAndFooterOpensDoAsap() throws Exception {
+    public void nextActionRowsSelectTheirAction() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             Data original = DataLookup.instance().lookup(Data.class);
             try {
@@ -246,21 +246,16 @@ public class DashboardPanelTest {
                 action.setDescription("Navigate to Do ASAP");
                 data.getRootActions().add(action);
                 DataLookup.instance().setData(data);
-                int[] navigations = {0};
                 List<Action> selected = new ArrayList<>();
-                DashboardPanel panel = new DashboardPanel(() -> navigations[0]++,
-                        uri -> fail("Not a call"), selected::add, future -> fail("Not a someday item"));
+                DashboardPanel panel = new DashboardPanel(uri -> fail("Not a call"), selected::add,
+                        future -> fail("Not a someday item"));
                 panel.refresh();
                 for (Component component : panel.getComponents()) {
-                    if (component instanceof JLabel label
-                            && (label.getText().contains("Navigate to Do ASAP")
-                            || label.getText().equals(NbBundle.getMessage(
-                                    DashboardPanel.class, "dashboard.next.all", 1)))) {
+                    if (component instanceof JLabel label && label.getText().contains("Navigate to Do ASAP")) {
                         click(label);
                     }
                 }
                 assertEquals(List.of(action), selected);
-                assertEquals("Only the footer should open Actions / Do ASAP", 1, navigations[0]);
             } finally {
                 DataLookup.instance().setData(original);
             }
@@ -281,8 +276,7 @@ public class DashboardPanelTest {
                 data.getRootActions().add(action);
                 DataLookup.instance().setData(data);
                 List<Action> selected = new ArrayList<>();
-                DashboardPanel panel = new DashboardPanel(() -> fail("Not the footer"),
-                        uri -> fail("Not a call"), selected::add, future -> fail("Not a someday item"));
+                DashboardPanel panel = new DashboardPanel(uri -> fail("Not a call"), selected::add, future -> fail("Not a someday item"));
                 panel.refresh();
 
                 for (Component component : panel.getComponents()) {
@@ -430,11 +424,11 @@ public class DashboardPanelTest {
     }
 
     @Test
-    public void nextActionRowsStayCappedAndLinkToFullScreenAtEveryBoundary() throws Exception {
+    public void nextActionsShowAllExpandsInPlaceAtEveryBoundary() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             Data original = DataLookup.instance().lookup(Data.class);
             try {
-                for (int count : new int[]{0, 1, 10, 11, 1000}) {
+                for (int count : new int[]{0, 1, 10, 11, 12, 1000}) {
                     Data data = new Data();
                     for (int i = 0; i < count; i++) {
                         Action action = new Action(data);
@@ -442,36 +436,50 @@ public class DashboardPanelTest {
                         data.getRootActions().add(action);
                     }
                     DataLookup.instance().setData(data);
-                    DashboardPanel panel = new DashboardPanel();
+                    List<Action> selected = new ArrayList<>();
+                    DashboardPanel panel = new DashboardPanel(uri -> fail("Not a call"), selected::add,
+                            future -> fail("Not a someday item"));
                     panel.refresh();
-                    List<JLabel> rows = new ArrayList<>();
-                    JLabel allLink = null;
-                    for (Component component : panel.getComponents()) {
-                        if (component instanceof JLabel label) {
-                            if (label.getText().contains("Next-action-row-")) {
-                                rows.add(label);
-                                assertTrue(label.getText().contains("&lt;&amp;&gt;"));
-                                assertTrue(label.getMouseListeners().length > 0);
-                            }
-                            if (label.getText().equals(NbBundle.getMessage(
-                                    DashboardPanel.class, "dashboard.next.all", count))) {
-                                allLink = label;
-                            }
-                        }
-                    }
-                    assertEquals(Math.min(10, count), rows.size());
-                    if (count == 0) {
-                        assertNull(allLink);
-                    } else {
-                        assertNotNull(allLink);
-                        assertTrue(allLink.getMouseListeners().length > 0);
-                        assertTrue(panel.getComponentZOrder(allLink)
-                                > panel.getComponentZOrder(rows.getLast()));
+                    List<JLabel> rows = nextActionRows(panel);
+                    JLabel showAll = showAllLink(panel, count);
+                    boolean collapsed = count > 11;
+                    assertEquals(collapsed ? 10 : count, rows.size());
+                    assertEquals(collapsed, showAll != null);
+                    if (collapsed) {
+                        assertTrue(panel.getComponentZOrder(showAll) > panel.getComponentZOrder(rows.getLast()));
+                        click(showAll);
+                        rows = nextActionRows(panel);
+                        assertEquals(count, rows.size());
+                        click(rows.getLast());
+                        assertEquals(1, selected.size());
+                        assertTrue(selected.get(0).getDescription().startsWith("Next-action-row-"));
                     }
                 }
             } finally {
                 DataLookup.instance().setData(original);
             }
         });
+    }
+
+    private static List<JLabel> nextActionRows(DashboardPanel panel) {
+        List<JLabel> rows = new ArrayList<>();
+        for (Component component : panel.getComponents()) {
+            if (component instanceof JLabel label && label.getText().contains("Next-action-row-")) {
+                assertTrue(label.getText().contains("&lt;&amp;&gt;"));
+                assertTrue(label.getMouseListeners().length > 0);
+                rows.add(label);
+            }
+        }
+        return rows;
+    }
+
+    private static JLabel showAllLink(DashboardPanel panel, int count) {
+        String text = NbBundle.getMessage(DashboardPanel.class, "dashboard.show.all", count);
+        for (Component component : panel.getComponents()) {
+            if (component instanceof JLabel label && label.getText().contains(text)) {
+                return label;
+            }
+        }
+        return null;
     }
 }

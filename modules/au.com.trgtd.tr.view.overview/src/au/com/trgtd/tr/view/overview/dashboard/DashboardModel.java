@@ -19,7 +19,6 @@ package au.com.trgtd.tr.view.overview.dashboard;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -40,6 +39,7 @@ import tr.model.thought.Thought;
  */
 public final class DashboardModel {
 
+    /** Number of next actions shown before the list is expanded. */
     static final int NEXT_ACTIONS_LIMIT = 10;
     private static final Comparator<Action> NEXT_ACTION_ORDER = Comparator
             .comparing((Action action) -> action.getContext().getName(), String.CASE_INSENSITIVE_ORDER)
@@ -66,7 +66,7 @@ public final class DashboardModel {
     public final List<Action> dueToday = new ArrayList<>();
     /** Delegated actions with a follow-up date today or earlier. */
     public final List<Action> followUps = new ArrayList<>();
-    /** Up to ten available non-Calls Do ASAP actions, sorted by context then due date. */
+    /** Available non-Calls Do ASAP actions, sorted by context then due date. */
     public final List<Action> nextActions = new ArrayList<>();
     /** All unfinished Calls actions, earliest due date first. */
     public final List<Action> calls = new ArrayList<>();
@@ -124,6 +124,7 @@ public final class DashboardModel {
         model.visit(data.getRootActions(), -1);
         model.somedayMaybe.addAll(data.getFutureManager().list());
         model.somedayMaybe.sort(Comparator.comparing(Future::getDescription, String.CASE_INSENSITIVE_ORDER));
+        model.nextActions.sort(NEXT_ACTION_ORDER);
         model.waitingFor.sort(DUE_ORDER);
         model.calls.sort(DUE_ORDER);
 
@@ -204,7 +205,7 @@ public final class DashboardModel {
                     doAsapCount++;
                     if (!call) {
                         nextActionsCount++;
-                        addLimited(nextActions, action, NEXT_ACTION_ORDER);
+                        nextActions.add(action);
                     }
                 }
             }
@@ -219,19 +220,6 @@ public final class DashboardModel {
             }
         }
         return action.isActive();
-    }
-
-    private static void addLimited(List<Action> list, Action action, Comparator<Action> order) {
-        int index = Collections.binarySearch(list, action, order);
-        if (index < 0) {
-            index = -index - 1;
-        }
-        if (index < NEXT_ACTIONS_LIMIT) {
-            list.add(index, action);
-            if (list.size() > NEXT_ACTIONS_LIMIT) {
-                list.remove(NEXT_ACTIONS_LIMIT);
-            }
-        }
     }
 
     private boolean isNotStarted(Project project) {
