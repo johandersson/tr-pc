@@ -34,6 +34,9 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.Desktop;
 import java.awt.Rectangle;
 import java.io.IOException;
@@ -56,6 +59,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
+import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -72,6 +76,7 @@ import tr.model.action.Action;
 import tr.model.action.ActionStateScheduled;
 import tr.model.future.Future;
 import tr.model.project.Project;
+import tr.model.topic.Topic;
 
 /**
  * GTD dashboard shown next to the overview diagram.
@@ -264,8 +269,8 @@ public final class DashboardPanel extends JPanel {
         }
         for (Action action : model.calls) {
             String due = dueDate(action);
-            add(link("<html>" + due + escape(action.getDescription()) + projectSuffix(action) + "</html>",
-                    () -> actionNavigation.accept(action)));
+            add(itemLink("<html>" + due + escape(action.getDescription()) + projectSuffix(action) + "</html>",
+                    () -> actionNavigation.accept(action), action));
             for (PhoneLinks.Phone phone : PhoneLinks.find(action.getDescription(), action.getNotes())) {
                 add(link("<html>&nbsp;&nbsp;" + escape(phone.label()) + "</html>",
                         () -> callLauncher.accept(phone.uri())));
@@ -324,7 +329,7 @@ public final class DashboardPanel extends JPanel {
         int shown = showAll ? items.size() : collapsedRows;
         for (int i = 0; i < shown; i++) {
             T item = items.get(i);
-            add(link("<html>" + html.apply(item) + "</html>", () -> onClick.accept(item)));
+            add(itemLink("<html>" + html.apply(item) + "</html>", () -> onClick.accept(item), item));
         }
         if (items.size() > collapsedRows + 1) {
             String label = showAll ? msg("dashboard.show.less") : msg("dashboard.show.all", items.size());
@@ -457,6 +462,46 @@ public final class DashboardPanel extends JPanel {
             }
         });
         return label;
+    }
+
+    private static JLabel itemLink(String text, Runnable onClick, Object item) {
+        JLabel label = link(text, onClick);
+        Topic topic = item instanceof Action action ? action.getTopic()
+                : item instanceof ProjectInfo info ? info.project().getTopic() : null;
+        // White is the model's default background for topics without a chosen color.
+        if (!Topic.isDefault(topic) && !Color.WHITE.equals(topic.getBackground())
+                && topic.getBackground().getAlpha() > 0) {
+            label.setIcon(new TopicColorIcon(topic.getBackground()));
+            label.setIconTextGap(6);
+            label.setToolTipText(topic.getName());
+        }
+        return label;
+    }
+
+    private record TopicColorIcon(Color color) implements Icon {
+        @Override
+        public int getIconWidth() {
+            return 10;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 10;
+        }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(color);
+                g.fillRoundRect(x, y, 10, 10, 3, 3);
+                g.setColor(new Color(0, 0, 0, 60));
+                g.drawRoundRect(x, y, 9, 9, 3, 3);
+            } finally {
+                g.dispose();
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")

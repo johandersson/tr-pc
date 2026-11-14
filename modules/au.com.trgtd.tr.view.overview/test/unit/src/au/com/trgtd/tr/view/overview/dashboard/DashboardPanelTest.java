@@ -37,9 +37,88 @@ import tr.model.action.ActionStateScheduled;
 import tr.model.future.Future;
 import tr.model.project.Project;
 import tr.model.thought.Thought;
+import tr.model.topic.Topic;
 import static org.junit.Assert.*;
 
 public class DashboardPanelTest {
+
+    @Test
+    public void topicSquaresUseBackgroundColorAndKeepRowNavigation() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                Topic colored = new Topic(data.getNextID());
+                colored.setName("Colored topic");
+                colored.setBackground(new java.awt.Color(42, 130, 190));
+                Topic uncolored = new Topic(data.getNextID());
+                uncolored.setName("Uncolored topic");
+                Topic transparent = new Topic(data.getNextID());
+                transparent.setName("Transparent topic");
+                transparent.setBackground(new java.awt.Color(42, 130, 190, 0));
+                for (Topic topic : List.of(colored, uncolored, transparent, Topic.getDefault())) {
+                    Action action = new Action(data);
+                    action.setDescription("Topic-row-" + topic.getName());
+                    action.setTopic(topic);
+                    data.getRootActions().add(action);
+                }
+                Action call = new Action(data);
+                call.setDescription("Colored-call");
+                call.setTopic(colored);
+                call.setContext(data.getContextManager().list().stream()
+                        .filter(context -> context.hasName("Calls")).findFirst().orElseThrow());
+                data.getRootActions().add(call);
+                Action scheduled = new Action(data);
+                scheduled.setDescription("Colored-scheduled");
+                scheduled.setTopic(colored);
+                ActionStateScheduled state = new ActionStateScheduled();
+                state.setDate(new java.util.Date());
+                scheduled.setState(state);
+                data.getRootActions().add(scheduled);
+                Project project = new Project(data);
+                project.setDescription("Colored-project");
+                project.setTopic(colored);
+                data.getRootProjects().add(project);
+                DataLookup.instance().setData(data);
+                List<Action> selected = new ArrayList<>();
+                DashboardPanel panel = new DashboardPanel(uri -> {}, selected::add, future -> {});
+                panel.refresh();
+                for (String text : List.of("Topic-row-Colored topic", "Colored-call",
+                        "Colored-scheduled", "Colored-project")) {
+                    List<JLabel> rows = labels(panel).stream()
+                            .filter(label -> label.getText().contains(text)).toList();
+                    assertFalse(text, rows.isEmpty());
+                    for (JLabel row : rows) {
+                        assertNotNull(text, row.getIcon());
+                        assertEquals("Colored topic", row.getToolTipText());
+                        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
+                                row.getIcon().getIconWidth(), row.getIcon().getIconHeight(),
+                                java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                        var graphics = image.createGraphics();
+                        try {
+                            row.getIcon().paintIcon(row, graphics, 0, 0);
+                        } finally {
+                            graphics.dispose();
+                        }
+                        assertEquals(colored.getBackground().getRGB(), image.getRGB(5, 5));
+                        if (!text.equals("Colored-project")) {
+                            click(row);
+                        }
+                    }
+                }
+                assertTrue(selected.contains(call));
+                assertTrue(selected.contains(scheduled));
+                for (String text : List.of("Topic-row-Uncolored topic", "Topic-row-Transparent topic",
+                        "Topic-row-" + Topic.getDefault().getName())) {
+                    JLabel row = labels(panel).stream().filter(label -> label.getText().contains(text))
+                            .findFirst().orElseThrow();
+                    assertNull(text, row.getIcon());
+                }
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
 
     @Test
     public void todayHeadingAndRowsComeBeforeMissedScheduled() throws Exception {

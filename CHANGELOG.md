@@ -59,6 +59,9 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Improvements
 
+- Dashboard action and project rows show a small rounded square in their topic's
+  background color, with the topic name on hover. No square is shown for None,
+  the default white background or a transparent color.
 - Dashboard Today now appears before Missed scheduled. Mouse-wheel scrolling
   over the dashboard listing is forwarded to its scrollbar without moving
   keyboard focus away from Quick Add.
