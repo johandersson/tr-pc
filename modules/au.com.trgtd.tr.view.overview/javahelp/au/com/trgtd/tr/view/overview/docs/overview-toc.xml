@@ -4,6 +4,7 @@
     <tocitem text="ThinkingRock Application">
         <tocitem text="01. Overview">
             <tocitem text="Overview Screen" target="tr.view.overview"/>
+            <tocitem text="Quick Add Next Action" target="tr.view.overview.quick-add"/>
         </tocitem>
     </tocitem>
 </toc>

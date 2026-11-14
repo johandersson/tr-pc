@@ -30,6 +30,36 @@
             We also recommend you go through all the preferences to specify output folders and various settings.
         </p>
 
+        <h4><a name="quick-add">Quick Add Next Action</a></h4>
+        <p>
+            Use the embedded Quick Add Next Action field below the dashboard to
+            create an action directly, without adding a thought to the inbox.
+            Press <b>Ctrl+S</b> or click <b>Add</b> to save.
+            Without a date marker, the new action is Do ASAP.
+        </p>
+        <p>
+            Include an existing context anywhere in the text, for example
+            <code>Buy groceries @Home</code>. Context names are case-insensitive
+            and may contain spaces. Without a context, the action uses None.
+        </p>
+        <p>
+            To create a Scheduled action instead, add one of these date markers
+            as a separate word, outside the context name:
+        </p>
+        <ul>
+            <li><code>Foo @Home -today</code> schedules Foo for today in Home.</li>
+            <li><code>Foo @Home -tomorrow</code> schedules Foo for tomorrow.</li>
+            <li><code>Foo @Home -2026-12-25</code> schedules Foo for a specific
+                date, using <code>-YYYY-MM-DD</code> format.</li>
+        </ul>
+        <p>
+            Today and tomorrow use your computer's local date. Scheduled actions
+            use your default scheduled time. The context and date markers are
+            removed from the saved action description. Unknown or conflicting
+            contexts, invalid or conflicting dates, and empty descriptions show
+            an inline message and keep your draft so you can correct it.
+        </p>
+
         <h4>Dashboard next actions</h4>
         <p>
             The dashboard lists up to 10 available non-Calls Do ASAP actions, sorted by context

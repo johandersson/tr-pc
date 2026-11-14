@@ -2,4 +2,6 @@
 <!DOCTYPE index PUBLIC "-//Sun Microsystems Inc.//DTD JavaHelp Index Version 2.0//EN" "http://java.sun.com/products/javahelp/index_2_0.dtd">
 <index version="2.0">
     <indexitem text="Overview screen" target="tr.view.overview"/>
+    <indexitem text="Quick Add Next Action" target="tr.view.overview.quick-add"/>
+    <indexitem text="Scheduled actions, quick capture" target="tr.view.overview.quick-add"/>
 </index>
