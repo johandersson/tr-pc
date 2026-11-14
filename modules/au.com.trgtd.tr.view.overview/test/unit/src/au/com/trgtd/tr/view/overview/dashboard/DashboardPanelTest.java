@@ -19,6 +19,7 @@ package au.com.trgtd.tr.view.overview.dashboard;
 
 import java.awt.Component;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,68 @@ import tr.model.thought.Thought;
 import static org.junit.Assert.*;
 
 public class DashboardPanelTest {
+
+    @Test
+    public void todayHeadingAndRowsComeBeforeMissedScheduled() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                Data data = new Data();
+                for (int daysAgo : new int[]{0, 1}) {
+                    Action action = new Action(data);
+                    action.setDescription(daysAgo == 0 ? "Today-row" : "Missed-row");
+                    ActionStateScheduled scheduled = new ActionStateScheduled();
+                    scheduled.setDate(java.util.Date.from(java.time.LocalDate.now().minusDays(daysAgo)
+                            .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()));
+                    action.setState(scheduled);
+                    data.getRootActions().add(action);
+                }
+                DataLookup.instance().setData(data);
+                DashboardPanel panel = new DashboardPanel();
+                panel.refresh();
+                List<String> texts = labels(panel).stream().map(JLabel::getText).toList();
+                int today = texts.indexOf(NbBundle.getMessage(DashboardPanel.class, "dashboard.today") + " (1)");
+                int missed = texts.indexOf(NbBundle.getMessage(DashboardPanel.class, "dashboard.missed") + " (2)");
+                assertTrue(today >= 0);
+                assertTrue(today < missed);
+                assertTrue(texts.subList(today + 1, missed).stream().anyMatch(text -> text.contains("Today-row")));
+                assertTrue(texts.subList(missed + 1, texts.size()).stream()
+                        .anyMatch(text -> text.contains("Missed-row")));
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
+
+    @Test
+    public void wheelOverDashboardScrollsItsViewportInBothDirections() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            Data original = DataLookup.instance().lookup(Data.class);
+            try {
+                DataLookup.instance().setData(new Data());
+                DashboardPanel panel = new DashboardPanel();
+                panel.refresh();
+                JScrollPane scroll = new JScrollPane(panel);
+                scroll.getVerticalScrollBar().setUnitIncrement(16);
+                scroll.setSize(480, 260);
+                scroll.doLayout();
+                scroll.getViewport().doLayout();
+                panel.doLayout();
+                assertTrue(scroll.getVerticalScrollBar().isVisible());
+                for (int type : new int[]{MouseWheelEvent.WHEEL_UNIT_SCROLL, MouseWheelEvent.WHEEL_BLOCK_SCROLL}) {
+                    scroll.getVerticalScrollBar().setValue(0);
+                    panel.dispatchEvent(new MouseWheelEvent(panel, MouseEvent.MOUSE_WHEEL,
+                            System.currentTimeMillis(), 0, 20, 20, 0, false, type, 3, 1));
+                    assertTrue("Wheel down must scroll dashboard", scroll.getViewport().getViewPosition().y > 0);
+                    panel.dispatchEvent(new MouseWheelEvent(panel, MouseEvent.MOUSE_WHEEL,
+                            System.currentTimeMillis(), 0, 20, 20, 0, false, type, 3, -1));
+                    assertEquals("Wheel up must scroll back", 0, scroll.getViewport().getViewPosition().y);
+                }
+            } finally {
+                DataLookup.instance().setData(original);
+            }
+        });
+    }
 
     @Test
     public void callsSectionIsVisibleWithoutCalls() throws Exception {

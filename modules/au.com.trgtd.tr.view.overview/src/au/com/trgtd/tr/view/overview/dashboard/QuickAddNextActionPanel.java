@@ -11,6 +11,10 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,13 +32,16 @@ import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.action.Action;
 import tr.model.action.ActionStateASAP;
+import tr.model.action.ActionStateScheduled;
 import tr.model.context.Context;
 
-/** Embedded capture for single Do ASAP actions, independent of dashboard refreshes. */
+/** Embedded capture for single actions, independent of dashboard refreshes. */
 public final class QuickAddNextActionPanel extends JPanel {
 
     private static final long serialVersionUID = 1L;
     private static final Pattern CONTEXT_MARKER = Pattern.compile("(?<!\\S)@");
+    private static final Pattern SCHEDULE_MARKER = Pattern.compile(
+            "(?<!\\S)-(today|tomorrow|\\d{4}-\\S*)(?!\\S)", Pattern.CASE_INSENSITIVE);
     private final JTextArea editor = new JTextArea(4, 0);
     private final JTextArea status = new JTextArea(3, 0);
     private final Runnable afterSave;
@@ -141,7 +148,27 @@ public final class QuickAddNextActionPanel extends JPanel {
             copiedUntil = matchedEnd;
         }
         description.append(text, copiedUntil, text.length());
-        String title = description.toString().strip().replaceAll("\\s+", " ");
+        Matcher schedules = SCHEDULE_MARKER.matcher(description);
+        LocalDate scheduledDate = null;
+        LocalDate today = LocalDate.now();
+        while (schedules.find()) {
+            String marker = schedules.group(1);
+            LocalDate date;
+            try {
+                date = marker.equalsIgnoreCase("today") ? today
+                        : marker.equalsIgnoreCase("tomorrow") ? today.plusDays(1)
+                        : LocalDate.parse(marker);
+            } catch (DateTimeParseException ex) {
+                showMessage(msg("quickadd.invalid.date", schedules.group()));
+                return;
+            }
+            if (scheduledDate != null && !scheduledDate.equals(date)) {
+                showMessage(msg("quickadd.multiple.dates"));
+                return;
+            }
+            scheduledDate = date;
+        }
+        String title = schedules.replaceAll("").strip().replaceAll("\\s+", " ");
         if (title.isEmpty()) {
             showMessage(msg("quickadd.empty"));
             return;
@@ -149,7 +176,15 @@ public final class QuickAddNextActionPanel extends JPanel {
         Action action = new Action(data);
         action.setDescription(title);
         action.setContext(selected);
-        action.setState(new ActionStateASAP());
+        if (scheduledDate == null) {
+            action.setState(new ActionStateASAP());
+        } else {
+            ActionStateScheduled scheduled = new ActionStateScheduled();
+            scheduled.setDate(Date.from(scheduledDate
+                    .atTime(scheduled.getSchdHour(), scheduled.getSchdMinute())
+                    .atZone(ZoneId.systemDefault()).toInstant()));
+            action.setState(scheduled);
+        }
         if (!data.getRootActions().add(action)) {
             showMessage(msg("quickadd.failed"));
             return;

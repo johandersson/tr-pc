@@ -58,6 +58,8 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import org.openide.util.NbBundle;
 import org.openide.DialogDisplayer;
@@ -104,6 +106,16 @@ public final class DashboardPanel extends JPanel {
         this.somedayNavigation = somedayNavigation;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        addMouseWheelListener(event -> {
+            JScrollPane scroll = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, this);
+            if (scroll != null) {
+                MouseEvent forwarded = SwingUtilities.convertMouseEvent(this, event, scroll);
+                scroll.dispatchEvent(forwarded);
+                if (forwarded.isConsumed()) {
+                    event.consume();
+                }
+            }
+        });
     }
 
     /** Rebuilds the dashboard from the current data. Must be called on the EDT. */
@@ -142,11 +154,11 @@ public final class DashboardPanel extends JPanel {
         attention(model);
 
         groupHeader(msg("dashboard.group.plan"));
-        section("missed", msg("dashboard.missed"), model.missedScheduled,
-                a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), actionNavigation, null);
         section("today", msg("dashboard.today"), model.today,
                 a -> time(a, false) + escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.today.none"));
+        section("missed", msg("dashboard.missed"), model.missedScheduled,
+                a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), actionNavigation, null);
         section("upcoming", msg("dashboard.upcoming", DashboardPanel.UPCOMING_DAYS), model.upcoming,
                 a -> time(a, true) + escape(a.getDescription()) + projectSuffix(a), actionNavigation,
                 msg("dashboard.upcoming.none"));

@@ -18,7 +18,11 @@ ThinkingRock. See [LICENSE](LICENSE).
   creates single Do ASAP actions with Add or Ctrl+S, not inbox thoughts.
   Put an existing context anywhere in the text (for example,
   `Buy groceries @Errands`); context names are case-insensitive and can contain
-  spaces. Without a context, the action uses None. Unknown or conflicting
+  spaces. Add `-today`, `-tomorrow` or `-YYYY-MM-DD` anywhere outside the context
+  name to create a Scheduled action instead, using the default scheduled time.
+  For example, `Foo @Home -today`. Invalid or conflicting dates keep the draft
+  and show inline feedback. Without a date marker, capture still creates a
+  Do ASAP action. Without a context, the action uses None. Unknown or conflicting
   contexts show an inline message and keep the draft. Dashboard refreshes
   leave unfinished drafts intact. Quick Add also requests native window focus
   when startup focus is not yet available, fixing initial capture focus on Windows.
@@ -55,6 +59,9 @@ ThinkingRock. See [LICENSE](LICENSE).
 
 ### Improvements
 
+- Dashboard Today now appears before Missed scheduled. Mouse-wheel scrolling
+  over the dashboard listing is forwarded to its scrollbar without moving
+  keyboard focus away from Quick Add.
 - Quick Add Next Action receives keyboard focus when the dashboard activates,
   including on startup, so capture can begin immediately.
 - **Next actions on the dashboard.** Shows the first 10 available Do ASAP

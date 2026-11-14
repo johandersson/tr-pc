@@ -12,6 +12,8 @@ import java.awt.event.FocusEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -31,6 +33,7 @@ import tr.model.Data;
 import tr.model.DataLookup;
 import tr.model.action.Action;
 import tr.model.action.ActionStateASAP;
+import tr.model.action.ActionStateScheduled;
 import tr.model.context.Context;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeFalse;
@@ -109,6 +112,81 @@ public class QuickAddNextActionPanelTest {
             assertEquals(5, data.getRootActions().size());
             assertEquals(0, data.getThoughtManager().size());
             assertEquals(5, refreshes[0]);
+        });
+    }
+
+    @Test
+    public void dateMarkersCreateScheduledActionsAndPreserveContexts() throws Exception {
+        withData(data -> {
+            int[] refreshes = {0};
+            QuickAddNextActionPanel panel = new QuickAddNextActionPanel(() -> refreshes[0]++);
+            LocalDate today = LocalDate.now();
+            String[] texts = {"Foo @Home -today", "-TOMORROW Foo @Home",
+                "Foo -2028-02-29 @Home", "-today Foo\n@Home -today"};
+            LocalDate[] dates = {today, today.plusDays(1), LocalDate.of(2028, 2, 29), today};
+            ActionStateScheduled defaults = new ActionStateScheduled();
+            for (int i = 0; i < texts.length; i++) {
+                editor(panel).setText(texts[i]);
+                if (i == 1) {
+                    saveButton(panel).doClick();
+                } else {
+                    shortcut(panel);
+                }
+                Action action = lastAction(data);
+                assertEquals("Foo", action.getDescription());
+                assertTrue(action.getContext().hasName("Home"));
+                assertTrue(action.getState() instanceof ActionStateScheduled);
+                ActionStateScheduled scheduled = (ActionStateScheduled) action.getState();
+                assertEquals(dates[i], scheduled.getDate().toInstant()
+                        .atZone(ZoneId.systemDefault()).toLocalDate());
+                assertEquals(defaults.getSchdHour(), scheduled.getSchdHour());
+                assertEquals(defaults.getSchdMinute(), scheduled.getSchdMinute());
+                assertEquals("", editor(panel).getText());
+                assertNull(action.getThought());
+            }
+            editor(panel).setText("Foo -2030-12-01");
+            shortcut(panel);
+            assertEquals(Context.getDefault(), lastAction(data).getContext());
+            assertEquals(5, refreshes[0]);
+            assertEquals(0, data.getThoughtManager().size());
+        });
+    }
+
+    @Test
+    public void ordinaryHyphensAndContextNamesAreNotScheduleMarkers() throws Exception {
+        withData(data -> {
+            Context context = new Context(data.getNextID());
+            context.setName("Home -today");
+            data.getContextManager().add(context);
+            QuickAddNextActionPanel panel = new QuickAddNextActionPanel(() -> {});
+            editor(panel).setText("Follow-up - check foo-today -todayish @Home -today");
+            shortcut(panel);
+            Action action = lastAction(data);
+            assertEquals("Follow-up - check foo-today -todayish", action.getDescription());
+            assertSame(context, action.getContext());
+            assertTrue(action.getState() instanceof ActionStateASAP);
+        });
+    }
+
+    @Test
+    public void invalidSchedulesKeepDraftAndShowInlineFeedback() throws Exception {
+        withData(data -> {
+            QuickAddNextActionPanel panel = new QuickAddNextActionPanel(() -> fail("Must not save"));
+            for (String[] input : List.of(
+                    new String[]{"Foo @Home -2027-02-29", "quickadd.invalid.date", "-2027-02-29"},
+                    new String[]{"Foo -2028-13-01", "quickadd.invalid.date", "-2028-13-01"},
+                    new String[]{"Foo -2028-1-2", "quickadd.invalid.date", "-2028-1-2"},
+                    new String[]{"Foo -today -tomorrow", "quickadd.multiple.dates"},
+                    new String[]{"@Home -today", "quickadd.empty"})) {
+                editor(panel).setText(input[0]);
+                shortcut(panel);
+                assertEquals(input[0], editor(panel).getText());
+                Object[] args = input.length == 3 ? new Object[]{input[2]} : new Object[0];
+                assertEquals(NbBundle.getMessage(QuickAddNextActionPanel.class, input[1], args),
+                        status(panel).getText());
+                assertEquals(0, data.getRootActions().size());
+                assertEquals(0, data.getThoughtManager().size());
+            }
         });
     }
 
