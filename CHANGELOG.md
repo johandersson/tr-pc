@@ -20,7 +20,8 @@ ThinkingRock. See [LICENSE](LICENSE).
   `Buy groceries @Errands`); context names are case-insensitive and can contain
   spaces. Without a context, the action uses None. Unknown or conflicting
   contexts show an inline message and keep the draft. Dashboard refreshes
-  leave unfinished drafts intact.
+  leave unfinished drafts intact. Quick Add also requests native window focus
+  when startup focus is not yet available, fixing initial capture focus on Windows.
 - Project choosers now search current and future project names, including
   collapsed sub-projects, and adapt their initial size to project titles,
   the owner window and available screen space.

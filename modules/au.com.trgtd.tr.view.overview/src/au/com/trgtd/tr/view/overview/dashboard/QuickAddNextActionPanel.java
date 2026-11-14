@@ -84,7 +84,10 @@ public final class QuickAddNextActionPanel extends JPanel {
     }
 
     public void focusEditor() {
-        editor.requestFocusInWindow();
+        if (!editor.requestFocusInWindow()) {
+            // Windows startup can activate the dashboard before its native window gains focus.
+            editor.requestFocus();
+        }
     }
 
     private void save() {
